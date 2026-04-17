@@ -3,215 +3,342 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LifeOS Pro | 个人进化系统</title>
+    <title>LifeOS Pro | 进化系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; font-family: sans-serif; }
-        .card { background: white; border-radius: 12px; border: 1px solid #e9ecef; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .progress-bar { transition: width 0.5s ease-in-out; }
-        .day-cell { aspect-ratio: 1; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-        .signed { background-color: #10b981 !important; color: white; }
+        body { font-family: 'Noto Sans SC', sans-serif; background-color: #f0f2f5; color: #1a202c; }
+        .card { background: white; border-radius: 16px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .progress-bar { transition: width 0.8s ease-in-out; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .day-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .signed { background: #10b981 !important; color: white; }
+        input[type="number"]::-webkit-inner-spin-button { display: none; }
     </style>
 </head>
-<body class="p-3 md:p-6">
-    <div id="app" class="max-w-4xl mx-auto space-y-4">
+<body class="p-3 md:p-8">
+    <div id="app" class="max-w-4xl mx-auto space-y-6">
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="card p-4 flex items-center space-x-4">
-                <img :src="user.avatar" class="w-16 h-16 rounded-full border-2 border-indigo-500 p-0.5 object-cover">
+            <div class="card p-5 flex items-center space-x-4">
+                <div class="relative group">
+                    <img :src="user.avatar" class="w-16 h-16 rounded-full border-2 border-indigo-500 p-1 object-cover cursor-pointer">
+                    <div class="hidden group-hover:block absolute top-0 left-0 w-full h-full bg-black/40 rounded-full flex items-center justify-center">
+                        <input @change="handleAvatar" type="file" class="hidden" id="avatarInput">
+                        <label for="avatarInput" class="text-[10px] text-white cursor-pointer">修改</label>
+                    </div>
+                </div>
                 <div>
-                    <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Rank</div>
+                    <div class="text-xs text-gray-400 font-bold uppercase">Level (Age)</div>
                     <div class="text-2xl font-black text-indigo-600">Lv.{{ calculatedAge }}</div>
-                    <div class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded">{{ user.title }}</div>
+                    <input v-model="user.title" class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded border-none outline-none" placeholder="编辑称号">
                 </div>
             </div>
 
-            <div class="card p-4 space-y-2">
-                <div v-for="(attr, key) in attributes" :key="key">
-                    <div class="flex justify-between text-[10px] font-bold mb-0.5">
+            <div class="card p-5 space-y-3">
+                <div v-for="(attr, key) in attributes" :key="key" class="text-[11px]">
+                    <div class="flex justify-between mb-1 font-bold">
                         <span>{{ attr.name }} Lv.{{ Math.floor(attr.xp / attr.max) }}</span>
-                        <span>{{ attr.xp % attr.max }}/{{ attr.max }}</span>
+                        <span class="text-gray-400">{{ attr.xp % attr.max }}/{{ attr.max }}</span>
                     </div>
                     <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
                         <div class="h-full progress-bar" :class="attr.color" :style="{width: (attr.xp % attr.max / attr.max * 100) + '%'}"></div>
                     </div>
                 </div>
-                <div class="text-xs font-bold text-emerald-600 pt-1 text-right">资产: ¥ {{ user.wealth.toFixed(2) }}</div>
-            </div>
-
-            <div class="card p-4 flex flex-col justify-between">
-                <div class="flex justify-between items-center text-xs">
-                    <span class="text-gray-500 font-bold">状态</span>
-                    <select v-model="user.status" class="bg-transparent font-bold">
-                        <option value="积极">🟢 积极</option>
-                        <option value="正常">🟡 正常</option>
-                        <option value="低电量">🔴 低电量</option>
-                    </select>
-                </div>
-                <div class="text-[10px] grid grid-cols-2 gap-2 text-center border-t pt-2">
-                    <div><div class="text-gray-400">今日任务</div><div class="font-bold">{{tasksDone}}/{{dailyTarget}}</div></div>
-                    <div><div class="text-gray-400">主线进度</div><div class="font-bold">{{mainDone}}/3</div></div>
+                <div class="flex justify-between items-center text-xs pt-1">
+                    <span class="font-bold text-emerald-600 italic">💰 资产余额:</span>
+                    <span class="font-mono font-bold">¥ {{ user.wealth.toFixed(2) }}</span>
                 </div>
             </div>
-        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="card p-4">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-sm font-bold">🗓️ 签到/复盘</h3>
-                    <button @click="showHistory = true" class="text-[10px] text-indigo-600 underline">总结盘点书</button>
-                </div>
-                <div class="grid grid-cols-7 gap-1 mb-4">
-                    <div v-for="d in 30" :key="d" 
-                         @click="signDay(d)"
-                         class="day-cell bg-gray-50 hover:bg-gray-100" 
-                         :class="{ 'signed': history['2026-4-'+d]?.signed }">
-                        {{ d }}
-                    </div>
-                </div>
-                <textarea v-model="tempNote" class="w-full h-20 text-xs bg-gray-50 p-2 rounded-lg border-none" placeholder="写下今日复盘..."></textarea>
-                <button @click="saveNote" class="w-full bg-indigo-600 text-white text-[10px] py-2 rounded-lg mt-2">保存复盘内容</button>
-            </div>
-
-            <div class="card p-4">
-                <h3 class="text-sm font-bold mb-3">⚔️ 任务结算</h3>
-                <div class="space-y-3">
-                    <input v-model="newTask.name" placeholder="做了什么？" class="w-full text-xs border-b pb-1 outline-none">
-                    <div class="grid grid-cols-2 gap-2">
-                        <select v-model="newTask.attr" class="text-[10px] border rounded p-1">
-                            <option v-for="(a,k) in attributes" :value="k">{{a.name}} (属性)</option>
+            <div class="card p-5 space-y-3 text-xs">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-gray-500">当前状态</span>
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full" :class="statusColor"></div>
+                        <select v-model="user.status" class="bg-transparent font-bold outline-none">
+                            <option value="积极">积极</option>
+                            <option value="正常">正常</option>
+                            <option value="低电量">低电量</option>
                         </select>
-                        <input v-model.number="newTask.xp" type="number" placeholder="获得XP" class="text-[10px] border rounded p-1">
                     </div>
-                    <select v-model="newTask.skill" class="w-full text-[10px] border rounded p-1">
-                        <option value="">关联技能...</option>
-                        <option v-for="s in skills" :value="s.id">{{s.name}}</option>
-                    </select>
-                    <button @click="submitTask" class="w-full bg-black text-white text-xs py-2 rounded-lg">完成记录 (+经验值)</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t text-center">
+                    <div><div class="text-gray-400 scale-90">今日任务</div><div class="font-bold">{{tasksDone}}/{{dailyTarget}}</div></div>
+                    <div><div class="text-gray-400 scale-90">主线进度</div><div class="font-bold">{{mainDone}}/3</div></div>
                 </div>
             </div>
         </div>
 
-        <div class="card p-4">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-sm font-bold">🌳 技能进化</h3>
-                <div class="text-[10px] space-x-2">
-                    <button @click="viewMode='cards'" :class="{'text-indigo-600': viewMode==='cards'}">卡片</button>
-                    <button @click="initChart" :class="{'text-indigo-600': viewMode==='chart'}">饼图占比</button>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="card p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-sm">🗓️ {{currentDate.year}}年{{currentDate.month}}月 签到</h3>
+                    <button @click="showHistory = true" class="text-[10px] bg-gray-100 px-3 py-1 rounded-full hover:bg-gray-200">📖 总结盘点</button>
                 </div>
-            </div>
-            <div v-if="viewMode==='cards'" class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div v-for="s in skills" :key="s.id" class="p-3 bg-gray-50 rounded-lg">
-                    <div class="text-xs font-bold">{{s.name}}</div>
-                    <div class="text-[10px] text-gray-400">Lv.{{ Math.floor(s.xp/100) }}</div>
-                    <div class="w-full bg-gray-200 h-1 rounded-full mt-1">
-                        <div class="bg-indigo-500 h-full" :style="{width: (s.xp%100)+'%'}"></div>
+                <div class="calendar-grid">
+                    <div v-for="d in daysInMonth" :key="d" 
+                         @click="signDay(d)"
+                         class="day-cell" :class="isSigned(d) ? 'signed' : 'bg-gray-50 hover:bg-gray-200'">
+                        <span>{{ d }}</span>
+                        <div v-if="hasTaskOn(d)" class="w-1 h-1 bg-yellow-300 rounded-full mt-0.5"></div>
                     </div>
                 </div>
-                <button @click="addSkill" class="text-[10px] border-2 border-dashed border-gray-200 text-gray-400 rounded-lg p-3 hover:text-indigo-500">+ 新技能</button>
             </div>
-            <div v-show="viewMode==='chart'" class="h-48">
+
+            <div class="space-y-4">
+                <div class="card p-5">
+                    <h3 class="font-bold text-sm mb-3">📝 每日复盘日记</h3>
+                    <textarea v-model="tempNote" class="w-full h-24 text-sm bg-gray-50 border-none p-3 rounded-xl focus:ring-2 ring-indigo-200" placeholder="写下今天的小日记..."></textarea>
+                    <button @click="saveNote" class="w-full bg-indigo-600 text-white text-xs py-2 rounded-lg mt-2 font-bold hover:shadow-lg transition">保存今日复盘</button>
+                </div>
+                
+                <div class="card p-5">
+                    <h3 class="font-bold text-sm mb-3">⚔️ 完成任务记录</h3>
+                    <div class="space-y-3">
+                        <input v-model="newTask.name" placeholder="任务类型/内容" class="w-full text-xs border-b pb-1 outline-none">
+                        <div class="grid grid-cols-2 gap-2">
+                            <select v-model="newTask.attr" class="text-[10px] border rounded p-1">
+                                <option v-for="(a,k) in attributes" :value="k">{{a.name}} (属性)</option>
+                            </select>
+                            <input v-model.number="newTask.xp" type="number" placeholder="获得经验" class="text-[10px] border rounded p-1">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select v-model="newTask.skill" class="text-[10px] border rounded p-1">
+                                <option value="">选择/添加技能...</option>
+                                <option v-for="s in skills" :value="s.id">{{s.name}}</option>
+                            </select>
+                            <input v-model="newTask.isMain" type="checkbox" id="mainTask" class="hidden">
+                            <label for="mainTask" @click="newTask.isMain = !newTask.isMain" :class="newTask.isMain ? 'bg-orange-100 text-orange-600' : 'bg-gray-50 text-gray-400'" class="text-[10px] border rounded p-1 text-center cursor-pointer font-bold">主线任务?</label>
+                        </div>
+                        <button @click="submitTask" class="w-full bg-black text-white text-xs py-2 rounded-lg font-bold active:scale-95 transition">结算任务</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-sm flex items-center gap-2">🌳 技能进化树 <span class="text-[10px] font-normal text-gray-400">每100XP升一级</span></h3>
+                <div class="bg-gray-100 p-1 rounded-lg flex text-[10px]">
+                    <button @click="viewMode='cards'" :class="viewMode==='cards'?'bg-white shadow-sm':''" class="px-3 py-1 rounded-md transition">卡片</button>
+                    <button @click="initChart" :class="viewMode==='chart'?'bg-white shadow-sm':''" class="px-3 py-1 rounded-md transition">占比</button>
+                </div>
+            </div>
+
+            <div v-if="viewMode==='cards'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div v-for="s in skills" :key="s.id" class="p-4 border rounded-2xl bg-gray-50/50 hover:bg-white transition hover:shadow-md cursor-pointer">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-bold text-sm">{{s.name}}</div>
+                        <div class="text-[10px] font-black text-indigo-400">Lv.{{ Math.floor(s.xp/100) }}</div>
+                    </div>
+                    <div class="w-full bg-gray-200 h-1 rounded-full mb-3">
+                        <div class="bg-indigo-500 h-full progress-bar" :style="{width: (s.xp % 100) + '%'}"></div>
+                    </div>
+                    <div class="text-[9px] text-gray-400 flex justify-between">
+                        <span>完成: {{s.count}}次</span>
+                        <span>{{s.lastDate || '从未'}}</span>
+                    </div>
+                </div>
+                <button @click="addSkill" class="p-4 border-2 border-dashed rounded-2xl text-gray-400 text-xs flex flex-col items-center justify-center hover:bg-white hover:text-indigo-500 transition">
+                    <span>+ 添加新技能</span>
+                </button>
+            </div>
+
+            <div v-show="viewMode==='chart'" class="h-64 flex justify-center">
                 <canvas id="skillChart"></canvas>
             </div>
         </div>
 
-        <div v-if="showHistory" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div class="bg-white w-full max-w-sm rounded-xl p-5 max-h-[70vh] overflow-y-auto">
-                <div class="flex justify-between font-bold mb-4 border-b pb-2">
-                    <span>📖 盘点书</span>
-                    <button @click="showHistory=false">×</button>
+        <div v-if="showHistory" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div class="bg-white w-full max-w-lg rounded-3xl p-6 max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6 border-b pb-4">
+                    <h2 class="text-xl font-bold italic">📖 历史盘点书</h2>
+                    <button @click="showHistory = false" class="text-gray-400 hover:text-black text-2xl">×</button>
                 </div>
-                <div v-for="(v, k) in history" :key="k" class="mb-3">
-                    <div class="text-[10px] text-indigo-500 font-bold">{{k}}</div>
-                    <div class="text-xs text-gray-600">{{v.note || '无复盘记录'}}</div>
+                <div class="space-y-6">
+                    <div v-for="(item, date) in history" :key="date" class="relative pl-6 border-l-2 border-indigo-100">
+                        <div class="absolute -left-[9px] top-0 w-4 h-4 bg-white border-2 border-indigo-500 rounded-full"></div>
+                        <div class="text-[10px] font-black text-indigo-500 mb-1 uppercase tracking-widest">{{date}}</div>
+                        <p class="text-sm text-gray-700 leading-relaxed">{{item.note || '这一天没有写下复盘...'}}</p>
+                    </div>
                 </div>
             </div>
         </div>
+
     </div>
 
     <script>
         const { createApp, ref, computed, onMounted, watch } = Vue;
+
         createApp({
             setup() {
-                const user = ref({ birthday: '2001-04-17', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Life', title: '进化中...', wealth: 0, status: '积极' });
+                // 基础数据
+                const user = ref({
+                    birthday: '2001-04-17',
+                    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=LifeOS',
+                    title: '觉醒的初级玩家',
+                    wealth: 0,
+                    status: '积极'
+                });
+
                 const attributes = ref({
                     int: { name: '智慧', xp: 0, max: 50, color: 'bg-blue-500' },
                     str: { name: '力量', xp: 0, max: 50, color: 'bg-red-500' },
                     san: { name: '心情', xp: 0, max: 100, color: 'bg-pink-500' }
                 });
-                const skills = ref([{ id: 1, name: '学习能力', xp: 0 }]);
-                const history = ref({});
+
+                const skills = ref([
+                    { id: Date.now(), name: '学习能力', xp: 0, count: 0, bindAttr: 'int', lastDate: '' }
+                ]);
+
+                const history = ref({}); // 格式: { '2026-4-17': { note: 'xxx', tasks: [] } }
                 const tempNote = ref("");
                 const tasksDone = ref(0);
                 const mainDone = ref(0);
                 const dailyTarget = 5;
                 const viewMode = ref('cards');
                 const showHistory = ref(false);
-                const newTask = ref({ name: '', attr: 'int', xp: 10, skill: '' });
+                const newTask = ref({ name: '', attr: 'int', xp: 10, skill: '', isMain: false });
 
+                // 计算属性
                 const calculatedAge = computed(() => {
-                    const diff = (new Date() - new Date(user.value.birthday)) / (1000*60*60*24*365.25);
+                    const bday = new Date(user.value.birthday);
+                    const now = new Date();
+                    const diff = (now - bday) / (1000 * 60 * 60 * 24 * 365.25);
                     return diff.toFixed(1);
                 });
 
+                const statusColor = computed(() => {
+                    if (user.value.status === '积极') return 'bg-green-500 shadow-[0_0_8px_#10b981]';
+                    if (user.value.status === '正常') return 'bg-yellow-500 shadow-[0_0_8px_#f59e0b]';
+                    return 'bg-red-500 shadow-[0_0_8px_#ef4444]';
+                });
+
+                const currentDate = { year: 2026, month: 4 };
+                const daysInMonth = new Date(2026, 4, 0).getDate();
+
+                // 方法
                 const signDay = (day) => {
-                    const k = '2026-4-' + day;
-                    if(!history.value[k]) history.value[k] = { signed: true, note: '' };
-                    else history.value[k].signed = !history.value[k].signed;
+                    const dateKey = `2026-4-${day}`;
+                    if (!history.value[dateKey]) history.value[dateKey] = { note: '', signed: true };
+                    else history.value[dateKey].signed = !history.value[dateKey].signed;
                 };
+
+                const isSigned = (day) => history.value[`2026-4-${day}`]?.signed;
+                const hasTaskOn = (day) => history.value[`2026-4-${day}`]?.tasks?.length > 0;
 
                 const saveNote = () => {
-                    const k = '2026-4-' + new Date().getDate();
-                    if(!history.value[k]) history.value[k] = { signed: true, note: '' };
-                    history.value[k].note = tempNote.value;
-                    alert("已存入盘点书");
+                    const dateKey = `2026-4-${new Date().getDate()}`;
+                    if (!history.value[dateKey]) history.value[dateKey] = {};
+                    history.value[dateKey].note = tempNote.value;
+                    alert("复盘笔记已保存到历史书！");
                 };
 
-                const submitTask = () => {
-                    if(!newTask.value.name) return;
-                    attributes.value[newTask.value.attr].xp += newTask.value.xp;
-                    if(newTask.value.attr === 'int') user.value.wealth += newTask.value.xp * 0.5;
-                    const sk = skills.value.find(s => s.id == newTask.value.skill);
-                    if(sk) sk.xp += newTask.value.xp;
-                    tasksDone.ref++;
-                    newTask.value.name = "";
+                const handleAvatar = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (f) => user.value.avatar = f.target.result;
+                        reader.readAsDataURL(file);
+                    }
                 };
 
                 const addSkill = () => {
-                    const n = prompt("名称:");
-                    if(n) skills.value.push({ id: Date.now(), name: n, xp: 0 });
+                    const name = prompt("请输入新技能名称:");
+                    if (name) skills.value.push({ id: Date.now(), name, xp: 0, count: 0, lastDate: '' });
                 };
 
-                let chart = null;
+                const submitTask = () => {
+                    if (!newTask.value.name) return;
+                    
+                    // 属性经验增加
+                    attributes.value[newTask.value.attr].xp += newTask.value.xp;
+                    
+                    // 财富联动 (如果是理财类/工作类任务，自动根据XP增加财富)
+                    if (newTask.value.attr === 'int') user.value.wealth += newTask.value.xp * 2;
+
+                    // 技能经验增加
+                    const skill = skills.value.find(s => s.id == newTask.value.skill);
+                    if (skill) {
+                        skill.xp += newTask.value.xp;
+                        skill.count++;
+                        skill.lastDate = new Date().toLocaleDateString();
+                    }
+
+                    // 记录历史任务
+                    const dateKey = `2026-4-${new Date().getDate()}`;
+                    if (!history.value[dateKey]) history.value[dateKey] = { tasks: [] };
+                    if (!history.value[dateKey].tasks) history.value[dateKey].tasks = [];
+                    history.value[dateKey].tasks.push(newTask.value.name);
+
+                    // 统计
+                    tasksDone.value++;
+                    if (newTask.value.isMain) mainDone.value++;
+
+                    // 重置
+                    newTask.value.name = "";
+                    alert("结算成功！属性已进化。");
+                };
+
+                let myChart = null;
                 const initChart = () => {
                     viewMode.value = 'chart';
                     setTimeout(() => {
                         const ctx = document.getElementById('skillChart').getContext('2d');
-                        if(chart) chart.destroy();
-                        chart = new Chart(ctx, {
+                        if (myChart) myChart.destroy();
+                        myChart = new Chart(ctx, {
                             type: 'doughnut',
                             data: {
                                 labels: skills.value.map(s => s.name),
-                                datasets: [{ data: skills.value.map(s => s.xp), backgroundColor: ['#6366f1','#10b981','#f43f5e','#fbbf24'] }]
+                                datasets: [{
+                                    data: skills.value.map(s => s.xp),
+                                    backgroundColor: ['#6366f1', '#10b981', '#f43f5e', '#fbbf24', '#8b5cf6'],
+                                    borderWidth: 0
+                                }]
                             },
-                            options: { cutout: '70%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 8 } } } } }
+                            options: { cutout: '70%', plugins: { legend: { position: 'bottom' } } }
                         });
                     }, 100);
                 };
 
-                const save = () => localStorage.setItem('LifeOS_V2', JSON.stringify({ user: user.value, attributes: attributes.value, skills: skills.value, history: history.value }));
+                // 持久化存储
+                const saveAll = () => {
+                    const pack = { 
+                        user: user.value, 
+                        attributes: attributes.value, 
+                        skills: skills.value, 
+                        history: history.value,
+                        tasksDone: tasksDone.value,
+                        mainDone: mainDone.value
+                    };
+                    localStorage.setItem('LifeOS_Pro_Final', JSON.stringify(pack));
+                };
+
                 onMounted(() => {
-                    const s = localStorage.getItem('LifeOS_V2');
-                    if(s) {
-                        const d = JSON.parse(s);
-                        user.value = d.user; attributes.value = d.attributes; skills.value = d.skills; history.value = d.history;
+                    const saved = localStorage.getItem('LifeOS_Pro_Final');
+                    if (saved) {
+                        const d = JSON.parse(saved);
+                        user.value = d.user;
+                        attributes.value = d.attributes;
+                        skills.value = d.skills;
+                        history.value = d.history || {};
+                        tasksDone.value = d.tasksDone || 0;
+                        mainDone.value = d.mainDone || 0;
                     }
                 });
-                watch([user, attributes, skills, history], save, { deep: true });
 
-                return { user, attributes, skills, history, tempNote, tasksDone, mainDone, dailyTarget, viewMode, showHistory, newTask, calculatedAge, signDay, saveNote, submitTask, addSkill, initChart };
+                // 监听数据变化自动保存
+                watch([user, attributes, skills, history], () => saveAll(), { deep: true });
+
+                return {
+                    user, attributes, skills, history, tempNote, tasksDone, mainDone, 
+                    dailyTarget, viewMode, showHistory, newTask, calculatedAge, statusColor,
+                    currentDate, daysInMonth, signDay, isSigned, hasTaskOn, saveNote, 
+                    handleAvatar, addSkill, submitTask, initChart
+                }
             }
         }).mount('#app')
     </script>
