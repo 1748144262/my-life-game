@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeOS | 个人进化系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #fbfbfa; color: #37352f; }
+        .notion-card { background: white; border-radius: 12px; border: 1px solid #edece9; transition: all 0.2s; }
+        .notion-card:hover { border-color: #d3d1cb; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .progress-fill { transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        input, select, textarea { outline: none; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-2xl mx-auto">
+        <header class="mb-8 flex justify-between items-end">
+            <div>
+                <h1 class="text-3xl font-bold mb-2">✨ LifeOS</h1>
+                <p class="text-gray-500 text-sm italic">“人生即游戏，我是我的开发者”</p>
+            </div>
+            <div class="text-right">
+                <div class="text-xs uppercase tracking-widest text-gray-400 font-bold">Current Rank</div>
+                <div class="text-4xl font-black text-indigo-600">Lv.<span id="level">1</span></div>
+            </div>
+        </header>
+
+        <section class="notion-card p-6 mb-6">
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-tighter mb-3">核心目标 / 梦想清单</h2>
+            <textarea id="dreams" class="w-full text-sm text-gray-700 bg-transparent border-none resize-none" rows="2" placeholder="点击这里输入你的终极梦想..."></textarea>
+        </section>
+
+        <section class="notion-card p-6 mb-6 bg-gradient-to-br from-white to-emerald-50/50">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-semibold text-emerald-800 flex items-center gap-2">💰 财富看板</h2>
+                <span class="text-2xl font-mono font-bold text-emerald-600">¥ <span id="balance">0.00</span></span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <input id="money-amt" type="number" placeholder="输入金额" class="bg-white border border-gray-200 rounded-lg p-2 text-sm focus:ring-2 ring-emerald-500/20">
+                <div class="flex gap-2">
+                    <button onclick="handleMoney('income')" class="flex-1 bg-emerald-600 text-white text-xs py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors">收入 (+XP)</button>
+                    <button onclick="handleMoney('expense')" class="flex-1 bg-gray-100 text-gray-600 text-xs py-2 rounded-lg font-bold hover:bg-gray-200 transition-colors">支出</button>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="notion-card p-4 border-t-4 border-t-blue-400">
+                <div class="flex justify-between text-sm font-medium mb-3">
+                    <span>🧠 智慧 (INT)</span>
+                    <span class="text-gray-400"><span id="int-val">0</span> / 1000</span>
+                </div>
+                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <div id="int-bar" class="bg-blue-400 h-full progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="notion-card p-4 border-t-4 border-t-red-400">
+                <div class="flex justify-between text-sm font-medium mb-3">
+                    <span>💪 力量 (STR)</span>
+                    <span class="text-gray-400"><span id="str-val">0</span> / 1000</span>
+                </div>
+                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <div id="str-bar" class="bg-red-400 h-full progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="notion-card p-4 border-t-4 border-t-emerald-400">
+                <div class="flex justify-between text-sm font-medium mb-3">
+                    <span>⚖️ 财富经验 (LUK)</span>
+                    <span class="text-gray-400"><span id="luk-val">0</span> / 1000</span>
+                </div>
+                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <div id="luk-bar" class="bg-emerald-400 h-full progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="notion-card p-4 border-t-4 border-t-pink-400">
+                <div class="flex justify-between text-sm font-medium mb-3">
+                    <span>😊 心情 (SAN)</span>
+                    <span class="text-gray-400"><span id="san-val">0</span> / 1000</span>
+                </div>
+                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <div id="san-bar" class="bg-pink-400 h-full progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <section class="notion-card p-6">
+            <h3 class="font-semibold mb-4 flex items-center gap-2">✍️ 记录今日打卡</h3>
+            <div class="space-y-4">
+                <input id="task-name" type="text" placeholder="输入已做的事情..." class="w-full border-b border-gray-100 py-2 focus:border-indigo-500 transition-colors text-sm">
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="submitTask('int', 60)" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100">+ 智慧 XP</button>
+                    <button onclick="submitTask('str', 60)" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100">+ 力量 XP</button>
+                    <button onclick="submitTask('san', 40)" class="px-4 py-2 bg-pink-50 text-pink-600 rounded-lg text-xs font-bold hover:bg-pink-100">+ 心情 XP</button>
+                </div>
+                <p class="text-[10px] text-gray-400">* 每次点击对应的属性增加 60 经验值</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // 初始化数据
+        let state = JSON.parse(localStorage.getItem('lifeOS_data')) || {
+            totalExp: 0,
+            balance: 0,
+            dreams: "",
+            stats: { int: 0, str: 0, luk: 0, san: 0 }
+        };
+
+        function updateUI() {
+            // 计算等级 (每 1000 经验升一级)
+            const level = Math.min(70, Math.floor(state.totalExp / 1000) + 1);
+            document.getElementById('level').innerText = level;
+            document.getElementById('balance').innerText = state.balance.toLocaleString('zh-CN', {minimumFractionDigits: 2});
+            document.getElementById('dreams').value = state.dreams;
+            
+            // 更新每个属性的进度条 (1000经验满当前条)
+            for (let s in state.stats) {
+                const val = state.stats[s];
+                document.getElementById(`${s}-val`).innerText = val;
+                const barPercent = Math.min(100, (val / 1000) * 100);
+                document.getElementById(`${s}-bar`).style.width = barPercent + '%';
+            }
+
+            // 保存到本地
+            localStorage.setItem('lifeOS_data', JSON.stringify(state));
+        }
+
+        // 记账逻辑
+        function handleMoney(type) {
+            const amtInput = document.getElementById('money-amt');
+            const amt = parseFloat(amtInput.value);
+            if(isNaN(amt) || amt <= 0) return;
+
+            if(type === 'income') {
+                state.balance += amt;
+                const bonusExp = Math.floor(amt * 0.5); // 收入每1元给0.5经验
+                state.stats.luk += bonusExp;
+                state.totalExp += bonusExp;
+            } else {
+                state.balance -= amt;
+            }
+            amtInput.value = "";
+            updateUI();
+        }
+
+        // 任务逻辑
+        function submitTask(type, exp) {
+            const taskInput = document.getElementById('task-name');
+            if(!taskInput.value) return alert("写点做了什么吧！");
+            
+            state.totalExp += exp;
+            state.stats[type] += exp;
+            taskInput.value = "";
+            updateUI();
+        }
+
+        // 梦想实时保存
+        document.getElementById('dreams').addEventListener('input', (e) => {
+            state.dreams = e.target.value;
+            localStorage.setItem('lifeOS_data', JSON.stringify(state));
+        });
+
+        // 页面启动
+        updateUI();
+    </script>
+</body>
+</html>
