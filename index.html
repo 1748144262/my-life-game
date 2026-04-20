@@ -3,195 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LifeOS Pro | 进化系统</title>
+    <title>LifeOS Pro</title>
+    <script src="https://cdn.staticfile.org/vue/3.3.4/vue.global.prod.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.staticfile.org/Chart.js/4.3.0/chart.umd.min.js"></script>
     <style>
-        body { background-color: #f4f7f6; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
+        [v-cloak] { display: none; } /* 防止加载前闪烁花括号 */
+        body { background-color: #f4f7f6; font-family: system-ui, -apple-system, sans-serif; }
         .card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .day-cell { aspect-ratio: 1/1; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; background: #f8fafc; position: relative; }
+        .signed { background: #10b981 !important; color: white; font-weight: bold; }
+        .status-dot { width: 4px; height: 4px; border-radius: 50%; position: absolute; bottom: 3px; }
         .done-item { text-decoration: line-through; color: #94a3b8; filter: grayscale(1); background: #f8fafc !important; }
-        .progress-bar { transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .day-cell { aspect-ratio: 1; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; transition: 0.2s; position: relative; }
-        .signed { background: #10b981 !important; color: white; }
-        .status-dot { width: 4px; height: 4px; border-radius: 50%; position: absolute; bottom: 4px; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .progress-bar { transition: width 0.6s ease; }
     </style>
 </head>
 <body class="p-3 md:p-6">
-    <div id="app" class="max-w-4xl mx-auto space-y-6">
+    <div id="app" v-cloak class="max-w-4xl mx-auto space-y-6">
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="card p-5 flex items-center space-x-4">
-                <img :src="user.avatar" class="w-16 h-16 rounded-full border-4 border-indigo-500/20 object-cover">
+                <img :src="user.avatar" class="w-14 h-14 rounded-full border-2 border-indigo-100 object-cover">
                 <div>
-                    <div class="text-[10px] text-gray-400 font-bold tracking-widest">RANK (AGE)</div>
+                    <div class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Rank / Age</div>
                     <div class="text-2xl font-black text-indigo-600">Lv.{{ calculatedAge }}</div>
-                    <input v-model="user.title" class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded outline-none w-24">
+                    <input v-model="user.title" class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded border-none w-20">
                 </div>
             </div>
 
             <div class="card p-5 space-y-3">
                 <div v-for="(attr, key) in attributes" :key="key">
-                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                    <div class="flex justify-between text-[10px] font-bold mb-1">
                         <span>{{ attr.name }} Lv.{{ Math.floor(attr.xp / attr.max) }}</span>
                         <span class="text-gray-400">{{ attr.xp % attr.max }}/{{ attr.max }}</span>
                     </div>
-                    <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
                         <div class="h-full progress-bar" :class="attr.color" :style="{width: (attr.xp % attr.max / attr.max * 100) + '%'}"></div>
                     </div>
                 </div>
-                <div class="flex justify-between items-center pt-1 border-t mt-2">
-                    <div class="flex items-center gap-1 cursor-pointer" @click="showWealthBook = true">
-                        <span class="text-xs font-bold text-emerald-600 underline">💰 资产余额:</span>
-                    </div>
-                    <input type="number" v-model.number="user.wealth" @change="logWealthChange" class="w-24 text-right font-mono font-bold text-xs bg-transparent outline-none">
+                <div class="flex justify-between items-center pt-1 border-t mt-1 cursor-pointer" @click="showWealthBook = true">
+                    <span class="text-[10px] font-bold text-emerald-600 underline">💰 资产余额:</span>
+                    <input type="number" v-model.number="user.wealth" @change="logWealthChange" class="w-20 text-right font-mono font-bold text-xs bg-transparent outline-none border-none">
                 </div>
             </div>
 
             <div class="card p-5 text-xs flex flex-col justify-between">
                 <div class="flex justify-between items-center font-bold">
-                    <span class="text-gray-500">本周总计完成</span>
+                    <span class="text-gray-500 tracking-tighter">本周任务</span>
                     <span class="text-indigo-600 text-lg">{{ weeklyTotal }}</span>
                 </div>
-                <div class="space-y-2 mt-2">
-                    <div class="flex justify-between"><span>今日任务</span><b>{{ tasksDoneToday }}/{{ Math.max(todayTasks.length, dailyTarget) }}</b></div>
+                <div class="space-y-1 mt-1">
+                    <div class="flex justify-between text-[9px]"><span>今日</span><b>{{ tasksDoneToday }}/{{ Math.max(todayTasks.length, 1) }}</b></div>
                     <div class="w-full bg-gray-100 h-1 rounded-full overflow-hidden">
                         <div class="bg-indigo-500 h-full" :style="{width: (tasksDoneToday/Math.max(todayTasks.length, 1)*100)+'%'}"></div>
                     </div>
                 </div>
-                <div class="flex justify-between items-center mt-3 pt-2 border-t">
-                    <span class="text-[10px] text-gray-400 font-bold">当前状态</span>
-                    <select v-model="user.status" class="font-bold outline-none bg-transparent">
-                        <option value="积极">🟢 积极</option>
-                        <option value="正常">🟡 正常</option>
-                        <option value="低电量">🔴 低电量</option>
-                    </select>
-                </div>
+                <select v-model="user.status" class="mt-2 font-bold text-[10px] outline-none bg-indigo-50 rounded px-1 py-0.5">
+                    <option value="积极">🟢 积极</option>
+                    <option value="正常">🟡 正常</option>
+                    <option value="低电量">🔴 低电量</option>
+                </select>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="card p-5 flex flex-col h-[400px]">
-                <h3 class="font-bold text-sm mb-4 flex justify-between items-center">
-                    <span>⚡ 今日任务清单</span>
-                    <span class="text-[9px] bg-gray-100 px-2 py-0.5 rounded text-gray-500">点击内容勾选 | 右侧删除</span>
-                </h3>
-                <div class="space-y-2 mb-4 overflow-y-auto flex-1">
-                    <div v-for="(t, i) in todayTasks" :key="i" 
-                         class="p-3 border rounded-xl flex items-center group transition"
-                         :class="t.done ? 'done-item' : 'bg-white hover:border-indigo-300'">
-                        <div @click="toggleTask(i)" class="flex-1 flex items-center space-x-3 cursor-pointer">
-                            <div class="w-5 h-5 border-2 rounded-full flex items-center justify-center border-indigo-200" :class="{'bg-indigo-500 border-indigo-500': t.done}">
-                                <span v-if="t.done" class="text-white text-[10px]">✓</span>
+            <div class="card p-5 h-[400px] flex flex-col">
+                <h3 class="font-bold text-sm mb-3">⚡ 计划清单</h3>
+                <div class="flex-1 overflow-y-auto space-y-2 pr-1 mb-3 text-xs">
+                    <div v-for="(t, i) in todayTasks" :key="i" class="flex items-center p-2 border rounded-lg group" :class="t.done ? 'done-item' : 'bg-white'">
+                        <div @click="toggleTask(i)" class="flex-1 cursor-pointer flex items-center space-x-2">
+                            <div class="w-4 h-4 border rounded-full flex items-center justify-center" :class="t.done ? 'bg-indigo-500 border-indigo-500' : 'border-gray-300'">
+                                <span v-if="t.done" class="text-white text-[8px]">✓</span>
                             </div>
-                            <div>
-                                <div class="text-sm font-medium">{{ t.name }}</div>
-                                <div class="text-[9px] opacity-70">+{{ t.xp }}XP · {{ getSkillName(t.skillId) }}</div>
-                            </div>
+                            <span>{{ t.name }}</span>
                         </div>
-                        <button @click="deleteTask(i)" class="ml-2 text-gray-300 hover:text-red-500 text-xs px-2 opacity-0 group-hover:opacity-100 transition">✕</button>
+                        <button @click="deleteTask(i)" class="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100">✕</button>
                     </div>
                 </div>
-                <div class="space-y-2 pt-4 border-t">
-                    <input v-model="newTask.name" placeholder="添加新计划..." class="w-full text-sm border-b pb-1 outline-none">
-                    <div class="grid grid-cols-2 gap-2">
-                        <select v-model="newTask.skillId" class="text-[10px] border rounded p-1">
-                            <option value="">选择关联技能</option>
+                <div class="pt-3 border-t space-y-2">
+                    <input v-model="newTask.name" placeholder="做什么？" class="w-full text-xs border-b pb-1 outline-none">
+                    <div class="flex gap-2">
+                        <select v-model="newTask.skillId" class="text-[10px] border rounded p-1 flex-1">
+                            <option value="">选技能</option>
                             <option v-for="s in skills" :value="s.id">{{s.name}}</option>
                         </select>
-                        <button @click="addTask" class="bg-black text-white text-xs py-1.5 rounded-lg font-bold">确认添加</button>
+                        <button @click="addTask" class="bg-black text-white text-[10px] px-3 py-1 rounded">添加</button>
                     </div>
                 </div>
             </div>
 
             <div class="card p-5 h-[400px] flex flex-col">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-sm">🗓️ 签到/历史书</h3>
-                    <button @click="showHistory = true" class="text-[10px] text-indigo-600 font-bold underline">查看完整复盘</button>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-sm">🗓️ 签到复盘</h3>
+                    <button @click="showHistory = true" class="text-[10px] text-indigo-600">历史书</button>
                 </div>
-                <div class="calendar-grid mb-4">
-                    <div v-for="d in daysInMonth" :key="d" @click="signDay(d)"
-                         class="day-cell bg-gray-50 hover:bg-gray-100" :class="{ 'signed': history[currentYearMonth+'-'+d]?.signed }">
+                <div class="calendar-grid mb-3">
+                    <div v-for="d in daysInMonth" :key="d" @click="signDay(d)" class="day-cell" :class="{ 'signed': history[currentYearMonth+'-'+d]?.signed }">
                         {{ d }}
                         <div v-if="history[currentYearMonth+'-'+d]?.status" class="status-dot" :class="statusToColor(history[currentYearMonth+'-'+d]?.status)"></div>
                     </div>
                 </div>
-                <textarea v-model="tempNote" class="w-full flex-1 text-sm bg-gray-50 border-none p-3 rounded-xl focus:ring-2 ring-indigo-200 mb-2" placeholder="今天心情如何？有什么收获？"></textarea>
-                <button @click="saveNote" class="w-full bg-indigo-600 text-white text-xs py-2 rounded-lg font-bold">保存并打卡</button>
+                <textarea v-model="tempNote" class="w-full flex-1 text-xs bg-gray-50 border-none p-2 rounded-lg outline-none" placeholder="记录感悟..."></textarea>
+                <button @click="saveNote" class="w-full bg-indigo-600 text-white text-xs py-2 rounded-lg mt-2 font-bold">打卡保存</button>
             </div>
         </div>
 
-        <div class="card p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="font-bold text-sm">🌳 技能进化树</h3>
-                <div class="bg-gray-100 p-1 rounded-lg flex text-[10px]">
-                    <button @click="viewMode='cards'" :class="viewMode==='cards'?'bg-white shadow-sm font-bold':''" class="px-4 py-1 rounded-md">卡片视图</button>
-                    <button @click="initChart" :class="viewMode==='chart'?'bg-white shadow-sm font-bold':''" class="px-4 py-1 rounded-md">占比分析</button>
-                </div>
-            </div>
-            <div v-if="viewMode==='cards'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div v-for="s in skills" :key="s.id" class="p-4 border rounded-2xl bg-gray-50/20 hover:bg-white transition group relative overflow-hidden">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <div class="font-bold text-sm">{{ s.name }}</div>
-                            <select v-model="s.bindAttr" class="text-[9px] bg-white border rounded px-1 text-gray-400 mt-1">
-                                <option value="int">关联：智慧</option>
-                                <option value="str">关联：力量</option>
-                                <option value="san">关联：心情</option>
-                            </select>
-                        </div>
-                        <div class="text-[10px] font-black text-indigo-400">Lv.{{ Math.floor(s.xp/100) }}</div>
+        <div class="card p-5">
+            <h3 class="font-bold text-sm mb-4">🌳 技能进化</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div v-for="s in skills" :key="s.id" class="p-3 bg-gray-50 rounded-xl relative group">
+                    <div class="text-xs font-bold">{{ s.name }}</div>
+                    <div class="flex justify-between text-[8px] text-gray-400 mt-1">
+                        <span>Lv.{{ Math.floor(s.xp/100) }}</span>
+                        <span>{{ s.xp%100 }}/100</span>
                     </div>
-                    <div class="w-full bg-gray-100 h-1.5 rounded-full mt-2">
-                        <div class="bg-indigo-500 h-full progress-bar" :style="{width: (s.xp%100)+'%'}"></div>
+                    <div class="w-full bg-gray-200 h-1 rounded-full mt-1">
+                        <div class="bg-indigo-500 h-full" :style="{width: (s.xp%100)+'%'}"></div>
                     </div>
-                    <div class="flex justify-between mt-3 text-[9px] text-gray-400">
-                        <span>进化次数: {{s.count}}</span>
-                        <button @click="deleteSkill(s.id)" class="hidden group-hover:block text-red-400">删除技能</button>
-                    </div>
+                    <select v-model="s.bindAttr" class="text-[8px] mt-1 border-none bg-transparent text-gray-400 outline-none">
+                        <option value="int">智慧</option><option value="str">力量</option><option value="san">心情</option>
+                    </select>
                 </div>
-                <button @click="addSkill" class="p-6 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 text-xs flex flex-col items-center justify-center hover:border-indigo-300 transition">+ 觉醒新能力</button>
-            </div>
-            <div v-show="viewMode==='chart'" class="h-64 flex justify-center"><canvas id="skillChart"></canvas></div>
-        </div>
-
-        <div v-if="showHistory" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div class="bg-white w-full max-w-lg rounded-3xl p-6 max-h-[80vh] flex flex-col">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold italic">📖 历史盘点书</h2>
-                    <button @click="showHistory = false" class="text-2xl text-gray-300">✕</button>
-                </div>
-                <div class="space-y-4 overflow-y-auto flex-1 pr-2">
-                    <div v-for="(v, k) in sortedHistory" :key="k" class="p-4 border-l-4 bg-gray-50 rounded-r-xl" :class="borderByStatus(v.status)">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-[10px] font-bold text-gray-400 tracking-widest">{{ k }}</span>
-                            <span class="text-[10px] font-bold" :class="textByStatus(v.status)">{{ v.status || '正常' }}</span>
-                        </div>
-                        <p class="text-sm text-gray-700 leading-relaxed">{{ v.note || '这一天没留下日记...' }}</p>
-                    </div>
-                </div>
+                <button @click="addSkill" class="border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-[10px] py-4">+ 新能力</button>
             </div>
         </div>
 
         <div v-if="showWealthBook" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-            <div class="bg-white w-full max-w-md rounded-3xl p-6 max-h-[70vh] flex flex-col">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold">💳 资产账本</h2>
-                    <button @click="showWealthBook = false" class="text-2xl text-gray-300">✕</button>
+            <div class="bg-white w-full max-w-sm rounded-2xl p-5 max-h-[60vh] flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-bold">💳 资产账本</h2>
+                    <button @click="showWealthBook = false">✕</button>
                 </div>
-                <div class="mb-4 p-4 bg-emerald-50 rounded-2xl flex justify-between items-center">
-                    <span class="text-sm font-bold text-emerald-800">当前总额</span>
-                    <span class="text-xl font-mono font-bold text-emerald-600">¥ {{user.wealth}}</span>
-                </div>
-                <div class="space-y-3 overflow-y-auto flex-1 pr-2">
-                    <div v-for="(log, i) in wealthHistory" :key="i" class="flex justify-between items-center p-3 border-b border-gray-50 text-xs">
+                <div class="overflow-y-auto flex-1 space-y-2 text-[10px]">
+                    <div v-for="(log, i) in wealthHistory" :key="i" class="flex justify-between border-b pb-1">
                         <span class="text-gray-400">{{ log.date }}</span>
-                        <span class="font-medium">{{ log.reason }}</span>
-                        <span class="font-mono font-bold" :class="log.amount >= 0 ? 'text-emerald-500' : 'text-red-500'">
-                            {{ log.amount >= 0 ? '+' : '' }}{{ log.amount }}
-                        </span>
+                        <span :class="log.amount >= 0 ? 'text-emerald-500' : 'text-red-500'">{{ log.amount >= 0 ? '+' : '' }}{{ log.amount }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showHistory" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+            <div class="bg-white w-full max-w-sm rounded-2xl p-5 max-h-[70vh] flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-bold italic">📖 历史盘点书</h2>
+                    <button @click="showHistory = false">✕</button>
+                </div>
+                <div class="overflow-y-auto flex-1 space-y-4">
+                    <div v-for="(v, k) in sortedHistory" :key="k" class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between text-[9px] mb-1">
+                            <span class="font-bold text-indigo-500">{{ k }}</span>
+                            <span :class="textByStatus(v.status)">{{ v.status }}</span>
+                        </div>
+                        <p class="text-xs text-gray-600">{{ v.note || '无记录' }}</p>
                     </div>
                 </div>
             </div>
@@ -201,7 +166,6 @@
 
     <script>
         const { createApp, ref, computed, onMounted, watch } = Vue;
-
         createApp({
             setup() {
                 const user = ref({ birthday: '2001-04-17', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Life', title: '觉醒者', wealth: 0, status: '正常' });
@@ -216,7 +180,6 @@
                 const wealthHistory = ref([]);
                 const tempNote = ref("");
                 const dailyTarget = 5;
-                const viewMode = ref('cards');
                 const showHistory = ref(false);
                 const showWealthBook = ref(false);
                 const newTask = ref({ name: '', skillId: '', xp: 10 });
@@ -234,21 +197,17 @@
                 });
                 const sortedHistory = computed(() => Object.keys(history.value).sort().reverse().reduce((obj, key) => { obj[key] = history.value[key]; return obj; }, {}));
 
-                // 核心逻辑
                 const addTask = () => { if(newTask.value.name) { todayTasks.value.push({ ...newTask.value, done: false }); newTask.value.name = ""; } };
-                
                 const deleteTask = (index) => {
                     const task = todayTasks.value[index];
-                    if(task.done) modifyXP(task, -1); // 如果已完成，先扣分再删除
+                    if(task.done) modifyXP(task, -1);
                     todayTasks.value.splice(index, 1);
                 };
-
                 const toggleTask = (index) => {
                     const task = todayTasks.value[index];
                     task.done = !task.done;
                     modifyXP(task, task.done ? 1 : -1);
                 };
-
                 const modifyXP = (task, multiplier) => {
                     const skill = skills.value.find(s => s.id == task.skillId);
                     const amount = task.xp * multiplier;
@@ -256,8 +215,7 @@
                         attributes.value[skill.bindAttr].xp += amount;
                         skill.xp += amount;
                         skill.count += multiplier;
-                    } else {
-                        attributes.value.int.xp += amount;
+                        if(skill.bindAttr === 'int' && multiplier > 0) user.value.wealth += 5; 
                     }
                 };
 
@@ -265,66 +223,40 @@
                     const lastWealth = wealthHistory.value[0]?.total || 0;
                     const diff = user.value.wealth - lastWealth;
                     if(diff === 0) return;
-                    wealthHistory.value.unshift({
-                        date: new Date().toLocaleString(),
-                        amount: diff.toFixed(2),
-                        total: user.value.wealth,
-                        reason: diff > 0 ? "资产增值" : "资产支出"
-                    });
+                    wealthHistory.value.unshift({ date: new Date().toLocaleDateString(), amount: diff.toFixed(1), total: user.value.wealth });
                 };
 
                 const saveNote = () => {
                     const k = `${currentYearMonth}-${new Date().getDate()}`;
-                    if(!history.value[k]) history.value[k] = { signed: true };
-                    history.value[k].note = tempNote.value;
-                    history.value[k].status = user.value.status;
-                    history.value[k].tasksDone = tasksDoneToday.value;
-                    alert("今日成长已存入历史书！");
+                    history.value[k] = { signed: true, note: tempNote.value, status: user.value.status, tasksDone: tasksDoneToday.value };
+                    alert("存入成功");
                 };
 
                 const signDay = (day) => {
                     const k = `${currentYearMonth}-${day}`;
-                    if(!history.value[k]) history.value[k] = { signed: true, note: '', status: '正常' };
+                    if(!history.value[k]) history.value[k] = { signed: true, status: '正常' };
                     else history.value[k].signed = !history.value[k].signed;
                 };
 
                 const statusToColor = (s) => ({ '积极': 'bg-green-500', '正常': 'bg-yellow-500', '低电量': 'bg-red-500' }[s] || 'bg-gray-300');
-                const borderByStatus = (s) => ({ '积极': 'border-green-400', '正常': 'border-yellow-400', '低电量': 'border-red-400' }[s] || 'border-indigo-400');
                 const textByStatus = (s) => ({ '积极': 'text-green-500', '正常': 'text-yellow-500', '低电量': 'text-red-500' }[s] || 'text-gray-400');
 
                 const addSkill = () => {
-                    const n = prompt("输入新技能名称:");
+                    const n = prompt("名称:");
                     if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int' });
                 };
-                const deleteSkill = (id) => { if(confirm("确定删除技能及其所有经验吗？")) skills.value = skills.value.filter(s => s.id !== id); };
-                const getSkillName = (id) => skills.value.find(s => s.id == id)?.name || '基础';
 
-                // 统计图
-                let chart = null;
-                const initChart = () => {
-                    viewMode.value = 'chart';
-                    setTimeout(() => {
-                        const ctx = document.getElementById('skillChart').getContext('2d');
-                        if(chart) chart.destroy();
-                        chart = new Chart(ctx, {
-                            type: 'doughnut',
-                            data: { labels: skills.value.map(s => s.name), datasets: [{ data: skills.value.map(s => s.xp), backgroundColor: ['#6366f1','#10b981','#f43f5e','#f59e0b','#8b5cf6'] }] },
-                            options: { cutout: '75%', plugins: { legend: { position: 'bottom' } } }
-                        });
-                    }, 100);
-                };
-
-                const save = () => localStorage.setItem('LifeOS_V4_Final', JSON.stringify({ user: user.value, attributes: attributes.value, skills: skills.value, history: history.value, todayTasks: todayTasks.value, wealthHistory: wealthHistory.value }));
+                const save = () => localStorage.setItem('LifeOS_Stable_V5', JSON.stringify({ user: user.value, attributes: attributes.value, skills: skills.value, history: history.value, todayTasks: todayTasks.value, wealthHistory: wealthHistory.value }));
                 onMounted(() => {
-                    const s = localStorage.getItem('LifeOS_V4_Final');
+                    const s = localStorage.getItem('LifeOS_Stable_V5');
                     if(s) {
                         const d = JSON.parse(s);
                         user.value = d.user; attributes.value = d.attributes; skills.value = d.skills; history.value = d.history; todayTasks.value = d.todayTasks || []; wealthHistory.value = d.wealthHistory || [];
                     }
                 });
-                watch([user, attributes, skills, history, todayTasks, wealthHistory], save, { deep: true });
+                watch([user, attributes, skills, history, todayTasks], save, { deep: true });
 
-                return { user, attributes, skills, todayTasks, history, wealthHistory, tempNote, tasksDoneToday, dailyTarget, weeklyTotal, viewMode, showHistory, showWealthBook, newTask, calculatedAge, currentYearMonth, daysInMonth, signDay, saveNote, addTask, deleteTask, toggleTask, logWealthChange, statusToColor, borderByStatus, textByStatus, addSkill, deleteSkill, getSkillName, initChart, sortedHistory };
+                return { user, attributes, skills, todayTasks, history, wealthHistory, tempNote, tasksDoneToday, weeklyTotal, showHistory, showWealthBook, newTask, calculatedAge, currentYearMonth, daysInMonth, signDay, saveNote, addTask, deleteTask, toggleTask, logWealthChange, statusToColor, textByStatus, addSkill, sortedHistory };
             }
         }).mount('#app')
     </script>
