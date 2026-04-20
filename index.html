@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LifeOS Pro</title>
+    <title>LifeOS Pro | 进化系统</title>
     <script src="https://cdn.staticfile.org/vue/3.3.4/vue.global.prod.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.staticfile.org/Chart.js/4.3.0/chart.umd.min.js"></script>
     <style>
-        [v-cloak] { display: none; } /* 防止加载前闪烁花括号 */
-        body { background-color: #f4f7f6; font-family: system-ui, -apple-system, sans-serif; }
+        [v-cloak] { display: none; }
+        body { background-color: #f4f7f6; font-family: system-ui, sans-serif; }
         .card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
         .day-cell { aspect-ratio: 1/1; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; background: #f8fafc; position: relative; }
@@ -17,18 +16,19 @@
         .status-dot { width: 4px; height: 4px; border-radius: 50%; position: absolute; bottom: 3px; }
         .done-item { text-decoration: line-through; color: #94a3b8; filter: grayscale(1); background: #f8fafc !important; }
         .progress-bar { transition: width 0.6s ease; }
+        input[type="number"]::-webkit-inner-spin-button { display: none; }
     </style>
 </head>
 <body class="p-3 md:p-6">
     <div id="app" v-cloak class="max-w-4xl mx-auto space-y-6">
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="card p-5 flex items-center space-x-4">
+            <div class="card p-5 flex items-center space-x-4 border-l-4 border-indigo-500">
                 <img :src="user.avatar" class="w-14 h-14 rounded-full border-2 border-indigo-100 object-cover">
                 <div>
-                    <div class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Rank / Age</div>
+                    <div class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Rank / Age</div>
                     <div class="text-2xl font-black text-indigo-600">Lv.{{ calculatedAge }}</div>
-                    <input v-model="user.title" class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded border-none w-20">
+                    <input v-model="user.title" class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded border-none w-20 text-center font-bold">
                 </div>
             </div>
 
@@ -36,7 +36,7 @@
                 <div v-for="(attr, key) in attributes" :key="key">
                     <div class="flex justify-between text-[10px] font-bold mb-1">
                         <span>{{ attr.name }} Lv.{{ Math.floor(attr.xp / attr.max) }}</span>
-                        <span class="text-gray-400">{{ attr.xp % attr.max }}/{{ attr.max }}</span>
+                        <span class="text-gray-400 font-mono">{{ attr.xp % attr.max }}/{{ attr.max }}</span>
                     </div>
                     <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
                         <div class="h-full progress-bar" :class="attr.color" :style="{width: (attr.xp % attr.max / attr.max * 100) + '%'}"></div>
@@ -50,53 +50,62 @@
 
             <div class="card p-5 text-xs flex flex-col justify-between">
                 <div class="flex justify-between items-center font-bold">
-                    <span class="text-gray-500 tracking-tighter">本周任务</span>
-                    <span class="text-indigo-600 text-lg">{{ weeklyTotal }}</span>
+                    <span class="text-gray-500 tracking-tighter text-[10px] uppercase">Weekly Tasks</span>
+                    <span class="text-indigo-600 text-lg font-black">{{ weeklyTotal }}</span>
                 </div>
                 <div class="space-y-1 mt-1">
-                    <div class="flex justify-between text-[9px]"><span>今日</span><b>{{ tasksDoneToday }}/{{ Math.max(todayTasks.length, 1) }}</b></div>
+                    <div class="flex justify-between text-[9px]"><span>今日进度</span><b>{{ tasksDoneToday }}/{{ Math.max(todayTasks.length, 1) }}</b></div>
                     <div class="w-full bg-gray-100 h-1 rounded-full overflow-hidden">
-                        <div class="bg-indigo-500 h-full" :style="{width: (tasksDoneToday/Math.max(todayTasks.length, 1)*100)+'%'}"></div>
+                        <div class="bg-indigo-500 h-full progress-bar" :style="{width: (tasksDoneToday/Math.max(todayTasks.length, 1)*100)+'%'}"></div>
                     </div>
                 </div>
-                <select v-model="user.status" class="mt-2 font-bold text-[10px] outline-none bg-indigo-50 rounded px-1 py-0.5">
-                    <option value="积极">🟢 积极</option>
-                    <option value="正常">🟡 正常</option>
-                    <option value="低电量">🔴 低电量</option>
-                </select>
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-[9px] text-gray-400 uppercase font-bold">Energy Status</span>
+                    <select v-model="user.status" class="font-bold text-[10px] outline-none bg-indigo-50 rounded px-1 py-0.5">
+                        <option value="积极">🟢 积极</option>
+                        <option value="正常">🟡 正常</option>
+                        <option value="低电量">🔴 低电量</option>
+                    </select>
+                </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="card p-5 h-[400px] flex flex-col">
-                <h3 class="font-bold text-sm mb-3">⚡ 计划清单</h3>
+            <div class="card p-5 h-[420px] flex flex-col">
+                <h3 class="font-bold text-sm mb-3 flex justify-between">
+                    <span>⚡ 计划清单</span>
+                    <span class="text-[9px] text-gray-300">点击结算 / ✕ 删除</span>
+                </h3>
                 <div class="flex-1 overflow-y-auto space-y-2 pr-1 mb-3 text-xs">
-                    <div v-for="(t, i) in todayTasks" :key="i" class="flex items-center p-2 border rounded-lg group" :class="t.done ? 'done-item' : 'bg-white'">
-                        <div @click="toggleTask(i)" class="flex-1 cursor-pointer flex items-center space-x-2">
-                            <div class="w-4 h-4 border rounded-full flex items-center justify-center" :class="t.done ? 'bg-indigo-500 border-indigo-500' : 'border-gray-300'">
-                                <span v-if="t.done" class="text-white text-[8px]">✓</span>
+                    <div v-for="(t, i) in todayTasks" :key="i" class="flex items-center p-3 border rounded-xl group transition" :class="t.done ? 'done-item' : 'bg-white hover:border-indigo-200'">
+                        <div @click="toggleTask(i)" class="flex-1 cursor-pointer flex items-center space-x-3">
+                            <div class="w-5 h-5 border-2 rounded-full flex items-center justify-center transition" :class="t.done ? 'bg-indigo-500 border-indigo-500' : 'border-gray-200'">
+                                <span v-if="t.done" class="text-white text-[10px]">✓</span>
                             </div>
-                            <span>{{ t.name }}</span>
+                            <div class="flex flex-col">
+                                <span class="font-medium">{{ t.name }}</span>
+                                <span class="text-[9px] opacity-60">{{ getSkillName(t.skillId) }} +{{ t.xp }}XP</span>
+                            </div>
                         </div>
-                        <button @click="deleteTask(i)" class="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100">✕</button>
+                        <button @click="deleteTask(i)" class="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 px-2 transition">✕</button>
                     </div>
                 </div>
                 <div class="pt-3 border-t space-y-2">
-                    <input v-model="newTask.name" placeholder="做什么？" class="w-full text-xs border-b pb-1 outline-none">
+                    <input v-model="newTask.name" placeholder="输入新任务..." class="w-full text-xs border-b pb-1 outline-none focus:border-indigo-500 transition">
                     <div class="flex gap-2">
-                        <select v-model="newTask.skillId" class="text-[10px] border rounded p-1 flex-1">
-                            <option value="">选技能</option>
+                        <select v-model="newTask.skillId" class="text-[10px] border rounded p-1 flex-1 bg-gray-50 outline-none">
+                            <option value="">选择关联技能</option>
                             <option v-for="s in skills" :value="s.id">{{s.name}}</option>
                         </select>
-                        <button @click="addTask" class="bg-black text-white text-[10px] px-3 py-1 rounded">添加</button>
+                        <button @click="addTask" class="bg-black text-white text-[10px] px-4 py-1.5 rounded-lg font-bold active:scale-95 transition">确认</button>
                     </div>
                 </div>
             </div>
 
-            <div class="card p-5 h-[400px] flex flex-col">
+            <div class="card p-5 h-[420px] flex flex-col">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="font-bold text-sm">🗓️ 签到复盘</h3>
-                    <button @click="showHistory = true" class="text-[10px] text-indigo-600">历史书</button>
+                    <button @click="showHistory = true" class="text-[10px] text-indigo-600 font-bold underline">查看历史书</button>
                 </div>
                 <div class="calendar-grid mb-3">
                     <div v-for="d in daysInMonth" :key="d" @click="signDay(d)" class="day-cell" :class="{ 'signed': history[currentYearMonth+'-'+d]?.signed }">
@@ -104,161 +113,4 @@
                         <div v-if="history[currentYearMonth+'-'+d]?.status" class="status-dot" :class="statusToColor(history[currentYearMonth+'-'+d]?.status)"></div>
                     </div>
                 </div>
-                <textarea v-model="tempNote" class="w-full flex-1 text-xs bg-gray-50 border-none p-2 rounded-lg outline-none" placeholder="记录感悟..."></textarea>
-                <button @click="saveNote" class="w-full bg-indigo-600 text-white text-xs py-2 rounded-lg mt-2 font-bold">打卡保存</button>
-            </div>
-        </div>
-
-        <div class="card p-5">
-            <h3 class="font-bold text-sm mb-4">🌳 技能进化</h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div v-for="s in skills" :key="s.id" class="p-3 bg-gray-50 rounded-xl relative group">
-                    <div class="text-xs font-bold">{{ s.name }}</div>
-                    <div class="flex justify-between text-[8px] text-gray-400 mt-1">
-                        <span>Lv.{{ Math.floor(s.xp/100) }}</span>
-                        <span>{{ s.xp%100 }}/100</span>
-                    </div>
-                    <div class="w-full bg-gray-200 h-1 rounded-full mt-1">
-                        <div class="bg-indigo-500 h-full" :style="{width: (s.xp%100)+'%'}"></div>
-                    </div>
-                    <select v-model="s.bindAttr" class="text-[8px] mt-1 border-none bg-transparent text-gray-400 outline-none">
-                        <option value="int">智慧</option><option value="str">力量</option><option value="san">心情</option>
-                    </select>
-                </div>
-                <button @click="addSkill" class="border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-[10px] py-4">+ 新能力</button>
-            </div>
-        </div>
-
-        <div v-if="showWealthBook" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-            <div class="bg-white w-full max-w-sm rounded-2xl p-5 max-h-[60vh] flex flex-col">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="font-bold">💳 资产账本</h2>
-                    <button @click="showWealthBook = false">✕</button>
-                </div>
-                <div class="overflow-y-auto flex-1 space-y-2 text-[10px]">
-                    <div v-for="(log, i) in wealthHistory" :key="i" class="flex justify-between border-b pb-1">
-                        <span class="text-gray-400">{{ log.date }}</span>
-                        <span :class="log.amount >= 0 ? 'text-emerald-500' : 'text-red-500'">{{ log.amount >= 0 ? '+' : '' }}{{ log.amount }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="showHistory" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-            <div class="bg-white w-full max-w-sm rounded-2xl p-5 max-h-[70vh] flex flex-col">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="font-bold italic">📖 历史盘点书</h2>
-                    <button @click="showHistory = false">✕</button>
-                </div>
-                <div class="overflow-y-auto flex-1 space-y-4">
-                    <div v-for="(v, k) in sortedHistory" :key="k" class="p-3 bg-gray-50 rounded-lg">
-                        <div class="flex justify-between text-[9px] mb-1">
-                            <span class="font-bold text-indigo-500">{{ k }}</span>
-                            <span :class="textByStatus(v.status)">{{ v.status }}</span>
-                        </div>
-                        <p class="text-xs text-gray-600">{{ v.note || '无记录' }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <script>
-        const { createApp, ref, computed, onMounted, watch } = Vue;
-        createApp({
-            setup() {
-                const user = ref({ birthday: '2001-04-17', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Life', title: '觉醒者', wealth: 0, status: '正常' });
-                const attributes = ref({
-                    int: { name: '智慧', xp: 0, max: 50, color: 'bg-blue-500' },
-                    str: { name: '力量', xp: 0, max: 50, color: 'bg-red-500' },
-                    san: { name: '心情', xp: 0, max: 100, color: 'bg-pink-500' }
-                });
-                const skills = ref([{ id: 1, name: '学习能力', xp: 0, count: 0, bindAttr: 'int' }]);
-                const todayTasks = ref([]);
-                const history = ref({});
-                const wealthHistory = ref([]);
-                const tempNote = ref("");
-                const dailyTarget = 5;
-                const showHistory = ref(false);
-                const showWealthBook = ref(false);
-                const newTask = ref({ name: '', skillId: '', xp: 10 });
-
-                const now = new Date();
-                const currentYearMonth = `${now.getFullYear()}-${now.getMonth()+1}`;
-                const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-
-                const calculatedAge = computed(() => ((new Date() - new Date(user.value.birthday)) / (1000*60*60*24*365.25)).toFixed(1));
-                const tasksDoneToday = computed(() => todayTasks.value.filter(t => t.done).length);
-                const weeklyTotal = computed(() => {
-                    let total = tasksDoneToday.value;
-                    Object.values(history.value).forEach(h => total += (h.tasksDone || 0));
-                    return total;
-                });
-                const sortedHistory = computed(() => Object.keys(history.value).sort().reverse().reduce((obj, key) => { obj[key] = history.value[key]; return obj; }, {}));
-
-                const addTask = () => { if(newTask.value.name) { todayTasks.value.push({ ...newTask.value, done: false }); newTask.value.name = ""; } };
-                const deleteTask = (index) => {
-                    const task = todayTasks.value[index];
-                    if(task.done) modifyXP(task, -1);
-                    todayTasks.value.splice(index, 1);
-                };
-                const toggleTask = (index) => {
-                    const task = todayTasks.value[index];
-                    task.done = !task.done;
-                    modifyXP(task, task.done ? 1 : -1);
-                };
-                const modifyXP = (task, multiplier) => {
-                    const skill = skills.value.find(s => s.id == task.skillId);
-                    const amount = task.xp * multiplier;
-                    if(skill) {
-                        attributes.value[skill.bindAttr].xp += amount;
-                        skill.xp += amount;
-                        skill.count += multiplier;
-                        if(skill.bindAttr === 'int' && multiplier > 0) user.value.wealth += 5; 
-                    }
-                };
-
-                const logWealthChange = () => {
-                    const lastWealth = wealthHistory.value[0]?.total || 0;
-                    const diff = user.value.wealth - lastWealth;
-                    if(diff === 0) return;
-                    wealthHistory.value.unshift({ date: new Date().toLocaleDateString(), amount: diff.toFixed(1), total: user.value.wealth });
-                };
-
-                const saveNote = () => {
-                    const k = `${currentYearMonth}-${new Date().getDate()}`;
-                    history.value[k] = { signed: true, note: tempNote.value, status: user.value.status, tasksDone: tasksDoneToday.value };
-                    alert("存入成功");
-                };
-
-                const signDay = (day) => {
-                    const k = `${currentYearMonth}-${day}`;
-                    if(!history.value[k]) history.value[k] = { signed: true, status: '正常' };
-                    else history.value[k].signed = !history.value[k].signed;
-                };
-
-                const statusToColor = (s) => ({ '积极': 'bg-green-500', '正常': 'bg-yellow-500', '低电量': 'bg-red-500' }[s] || 'bg-gray-300');
-                const textByStatus = (s) => ({ '积极': 'text-green-500', '正常': 'text-yellow-500', '低电量': 'text-red-500' }[s] || 'text-gray-400');
-
-                const addSkill = () => {
-                    const n = prompt("名称:");
-                    if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int' });
-                };
-
-                const save = () => localStorage.setItem('LifeOS_Stable_V5', JSON.stringify({ user: user.value, attributes: attributes.value, skills: skills.value, history: history.value, todayTasks: todayTasks.value, wealthHistory: wealthHistory.value }));
-                onMounted(() => {
-                    const s = localStorage.getItem('LifeOS_Stable_V5');
-                    if(s) {
-                        const d = JSON.parse(s);
-                        user.value = d.user; attributes.value = d.attributes; skills.value = d.skills; history.value = d.history; todayTasks.value = d.todayTasks || []; wealthHistory.value = d.wealthHistory || [];
-                    }
-                });
-                watch([user, attributes, skills, history, todayTasks], save, { deep: true });
-
-                return { user, attributes, skills, todayTasks, history, wealthHistory, tempNote, tasksDoneToday, weeklyTotal, showHistory, showWealthBook, newTask, calculatedAge, currentYearMonth, daysInMonth, signDay, saveNote, addTask, deleteTask, toggleTask, logWealthChange, statusToColor, textByStatus, addSkill, sortedHistory };
-            }
-        }).mount('#app')
-    </script>
-</body>
-</html>
+                <textarea v-model="tempNote" class="w-full flex-1 text-xs bg-gray-50 border-none p-
