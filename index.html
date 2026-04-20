@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LifeOS Ultimate V13</title>
+    <title>LifeOS Ultimate V14</title>
     <script src="https://cdn.staticfile.org/vue/3.3.4/vue.global.prod.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -14,31 +14,31 @@
         .progress-mini { height: 4px; background: #f1f5f9; border-radius: 2px; overflow: hidden; }
         .progress-fill { height: 100%; transition: width 0.6s ease; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        /* 愿望卡片色系 */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .day-cell { aspect-ratio: 1/1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; background: #f8fafc; cursor: pointer; }
+        .day-signed { background: #8b5cf6 !important; color: white; font-weight: bold; }
         .color-pink { background: #fdf2f8; } .color-green { background: #f0fdf4; }
         .color-blue { background: #eff6ff; } .color-purple { background: #f5f3ff; }
-        .calendar-dot { width: 4px; height: 4px; border-radius: 50%; margin-top: 4px; }
     </style>
 </head>
 <body class="pt-4">
     <div id="app" v-cloak class="max-w-md mx-auto px-4">
 
         <section v-show="activeTab === 'home'" class="space-y-4 animate-in fade-in">
-            
             <div class="flex items-center justify-between px-1">
                 <div class="flex items-center space-x-2">
                     <span class="text-2xl">🦄</span>
                     <div>
-                        <h1 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Life Progress</h1>
+                        <h1 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Core Status</h1>
                         <div class="flex items-center space-x-1">
                             <div class="w-2 h-2 rounded-full" :class="statusColor"></div>
                             <span class="text-xs font-bold">{{ user.status }}</span>
                         </div>
                     </div>
                 </div>
-                <div class="flex space-x-2 bg-slate-50 p-2 rounded-xl">
+                <div class="flex space-x-1.5 bg-slate-50 p-2 rounded-xl">
                     <div v-for="d in 7" :key="d" class="flex flex-col items-center">
-                        <div class="w-1.5 h-1.5 rounded-full" :class="getWeeklySignClass(d)"></div>
+                        <div class="w-1.5 h-1.5 rounded-full" :class="weeklySignStatus[d-1] ? 'bg-indigo-400' : 'bg-slate-200'"></div>
                         <span class="text-[7px] text-slate-300 mt-1">{{ ['一','二','三','四','五','六','日'][d-1] }}</span>
                     </div>
                 </div>
@@ -50,79 +50,65 @@
                         <span class="text-[10px] font-bold text-slate-400">{{ attr.name }}</span>
                         <span class="text-[10px] font-mono font-bold text-slate-600">{{ attr.valDisplay }}</span>
                     </div>
-                    <div class="progress-mini">
-                        <div class="progress-fill" :class="attr.color" :style="{width: attr.percent + '%'}"></div>
-                    </div>
+                    <div class="progress-mini"><div class="progress-fill" :class="attr.color" :style="{width: attr.percent + '%'}"></div></div>
                 </div>
             </div>
 
             <div class="card p-4">
-                <div class="flex justify-between items-center mb-3">
-                    <span class="text-[10px] font-black text-slate-400 uppercase">Mission Status</span>
-                    <span class="text-[10px] font-bold text-indigo-500">{{ tasksDoneToday }}/{{ todayTasks.length }}</span>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-[10px] font-black text-slate-400">TODAY'S MISSION</span>
+                    <span class="text-[10px] font-bold text-indigo-400">{{ tasksDoneToday }}/{{ todayTasks.length }}</span>
                 </div>
-                <div class="space-y-2">
-                    <div v-for="t in todayTasks.slice(0,2)" :key="t.name" class="flex items-center justify-between text-xs">
-                        <div class="flex items-center">
-                            <div class="w-1 h-3 rounded-full mr-2" :class="t.done ? 'bg-slate-200' : 'bg-indigo-400'"></div>
-                            <span :class="t.done ? 'text-slate-300 line-through' : ''">{{ t.name }}</span>
-                        </div>
-                        <span class="text-[8px] font-bold px-1 rounded" :class="t.type === '主线' ? 'bg-purple-50 text-purple-400' : 'bg-emerald-50 text-emerald-400'">{{ t.type }}</span>
-                    </div>
+                <div v-for="t in todayTasks.slice(0,2)" :key="t.name" class="flex items-center justify-between text-xs py-1">
+                    <span :class="t.done ? 'text-slate-300 line-through' : ''" class="truncate">· {{ t.name }}</span>
                 </div>
             </div>
 
             <div class="space-y-2">
-                <div class="flex justify-between items-center px-1">
-                    <span class="text-[10px] font-black text-slate-400 uppercase">Wish List / 未实现</span>
-                    <span @click="activeTab = 'wish'" class="text-[9px] font-bold text-indigo-400">全部 ></span>
-                </div>
+                <div class="flex justify-between px-1"><span class="text-[10px] font-black text-slate-400">WISHES (未实现)</span></div>
                 <div class="flex space-x-3 overflow-x-auto no-scrollbar pb-2">
-                    <div v-for="w in activeWishes" :key="w.id" class="flex-shrink-0 w-32 p-4 rounded-3xl card relative overflow-hidden" :class="w.colorClass">
-                        <div class="text-[10px] font-black text-slate-800 truncate mb-1">{{ w.title }}</div>
-                        <div class="text-[9px] font-mono text-slate-500 italic">￥{{ w.price.toLocaleString() }}</div>
-                        <div class="absolute -right-1 -bottom-1 opacity-10 text-3xl italic">★</div>
+                    <div v-for="w in activeWishes" :key="w.id" class="flex-shrink-0 w-28 p-3 rounded-2xl card" :class="w.colorClass">
+                        <div class="text-[10px] font-black truncate">{{ w.title }}</div>
+                        <div class="text-[8px] font-mono mt-1 opacity-60">￥{{ w.price }}</div>
                     </div>
-                    <div @click="activeTab = 'wish'" class="flex-shrink-0 w-32 border-2 border-dashed border-slate-100 rounded-3xl flex items-center justify-center text-slate-200 text-xs">查看更多</div>
                 </div>
             </div>
         </section>
 
         <section v-show="activeTab === 'todo'" class="space-y-4 animate-in slide-in-from-right">
-            <h2 class="text-xl font-black italic uppercase">Missions</h2>
+            <h2 class="text-xl font-black italic">MISSIONS</h2>
             <div class="space-y-3">
-                <div v-for="(t, i) in todayTasks" :key="i" class="card p-4 flex items-center">
-                    <div @click="toggleTask(i)" class="flex-1 flex items-center space-x-3 text-sm">
-                        <div class="w-5 h-5 border-2 rounded-lg transition-colors" :class="t.done ? 'bg-indigo-400 border-indigo-400' : 'border-slate-100'"></div>
+                <div v-for="(t, i) in todayTasks" :key="i" class="card p-4 flex items-center justify-between">
+                    <div @click="toggleTask(i)" class="flex items-center space-x-3 text-sm flex-1">
+                        <div class="w-5 h-5 border-2 rounded-lg" :class="t.done ? 'bg-indigo-400 border-indigo-400' : 'border-slate-100'"></div>
                         <span :class="{'line-through text-slate-300': t.done}">{{ t.name }}</span>
                     </div>
                     <button @click="todayTasks.splice(i,1)" class="text-slate-200">✕</button>
                 </div>
             </div>
-            <div class="card p-4 mt-4 space-y-3">
-                <input v-model="newTask.name" placeholder="输入新任务..." class="w-full text-sm p-2 border-b outline-none">
+            <div class="card p-4 space-y-3">
+                <input v-model="newTask.name" placeholder="输入任务目标..." class="w-full text-sm border-b p-2 outline-none">
                 <div class="grid grid-cols-2 gap-2">
                     <select v-model="newTask.targetType" class="text-[10px] bg-slate-50 p-2 rounded-lg">
-                        <option value="skill">关联技能树</option>
-                        <option value="int">智慧经验</option><option value="str">力量经验</option><option value="san">心情经验</option>
+                        <option value="skill">关联技能</option><option value="int">智慧经验</option><option value="str">力量经验</option><option value="san">心情经验</option>
                     </select>
                     <select v-if="newTask.targetType === 'skill'" v-model="newTask.skillId" class="text-[10px] bg-slate-50 p-2 rounded-lg">
                         <option v-for="s in skills" :key="s.id" :value="s.id">{{s.name}}</option>
                     </select>
                     <select v-model="newTask.type" class="text-[10px] bg-slate-50 p-2 rounded-lg" :class="{'col-span-2': newTask.targetType !== 'skill'}">
-                        <option value="主线">主线 (+50)</option><option value="支线">支线 (+20)</option>
+                        <option value="主线">主线(+50)</option><option value="支线">支线(+20)</option>
                     </select>
                 </div>
-                <button @click="addTask" class="w-full bg-slate-800 text-white py-4 rounded-2xl text-xs font-black">发布新任务</button>
+                <button @click="addTask" class="w-full bg-slate-800 text-white py-3 rounded-xl text-xs font-black">发布任务</button>
             </div>
         </section>
 
         <section v-show="activeTab === 'skill'" class="space-y-4 animate-in slide-in-from-right">
-            <div class="flex justify-between items-center"><h2 class="text-xl font-black italic">SKILL TREE</h2><button @click="addSkill" class="text-xs bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold">+ 技能</button></div>
+            <div class="flex justify-between items-center"><h2 class="text-xl font-black italic uppercase">Skill Tree</h2><button @click="addSkill" class="text-xs font-bold text-indigo-500">+ 添加</button></div>
             <div v-for="s in skills" :key="s.id" @click="selectedSkill = s" class="card p-4 border-l-4 border-indigo-400">
-                <div class="flex justify-between items-start mb-2">
-                    <div><div class="text-sm font-black">{{ s.name }}</div><div class="text-[9px] text-slate-400 uppercase">Lv.{{ Math.floor(s.xp/1000)+1 }} · 完成 {{ s.count }} 次</div></div>
-                    <span class="text-xs font-mono font-bold text-indigo-500">{{ s.xp % 1000 }}/1000</span>
+                <div class="flex justify-between mb-2">
+                    <div><div class="text-sm font-black">{{ s.name }}</div><div class="text-[9px] text-slate-400">Lv.{{ Math.floor(s.xp/1000)+1 }}</div></div>
+                    <span class="text-xs font-mono font-bold text-indigo-400">{{ s.xp % 1000 }}/1000</span>
                 </div>
                 <div class="progress-mini"><div class="progress-fill bg-indigo-400" :style="{width: (s.xp%1000/10)+'%'}"></div></div>
             </div>
@@ -139,160 +125,14 @@
             <div v-if="wishTab==='active'" class="grid grid-cols-2 gap-3">
                 <div v-for="w in activeWishes" :key="w.id" @click="editWish(w)" class="card p-4 aspect-square flex flex-col justify-between" :class="w.colorClass">
                     <div class="flex justify-between"><span class="text-xs font-black">{{ w.title }}</span><input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-indigo-500"></div>
-                    <div><div class="text-[9px] font-mono text-slate-400">￥{{ w.price.toLocaleString() }}</div><div v-if="w.note" class="text-[8px] text-slate-400 mt-1 truncate italic">“{{ w.note }}”</div></div>
+                    <div><div class="text-[9px] font-mono text-slate-400">￥{{ w.price }}</div></div>
                 </div>
-                <button @click="addWish" class="card aspect-square border-2 border-dashed border-slate-100 flex items-center justify-center text-slate-200 text-2xl">+</button>
+                <button @click="addWish" class="card aspect-square border-2 border-dashed border-slate-100 text-slate-200 text-2xl">+</button>
             </div>
-            <div v-else class="space-y-2">
-                <div v-for="w in doneWishes" :key="w.id" class="card p-4 flex justify-between items-center bg-slate-50 border-none">
-                    <span class="text-xs font-bold text-slate-300 line-through">{{ w.title }}</span>
-                    <span class="text-[10px] font-mono text-emerald-500">￥{{ w.price }}</span>
-                </div>
-            </div>
-        </section>
-
-        <section v-show="activeTab === 'wealth'" class="space-y-6"><h2 class="text-xl font-black italic uppercase">Wealth</h2><div class="card p-6 space-y-4"><div v-for="(label, key) in wealthLabel" :key="key" class="flex justify-between items-center border-b border-slate-50 pb-2"><label class="text-xs font-bold text-slate-500">{{ label }}</label><input type="number" v-model.number="wealthParts[key]" class="w-24 text-right font-mono font-bold text-sm bg-slate-50 p-2 rounded-lg outline-none"></div><div class="pt-4 text-center"><div class="text-[10px] text-slate-400 mb-1 font-bold">TOTAL ASSETS</div><div class="text-2xl font-black text-emerald-500 font-mono mb-4">￥ {{ tempTotalWealth.toLocaleString() }}</div><button @click="confirmWealth" class="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black text-sm">核算并记入历史</button></div></div></section>
-        
-        <section v-show="activeTab === 'history'" class="space-y-6"><h2 class="text-xl font-black italic uppercase">Chronicle</h2><div class="card p-4"><div class="flex justify-between items-center mb-4 text-xs font-bold px-1"><span>{{ viewYear }}年{{ viewMonth }}月</span><span class="text-slate-300">一 二 三 四 五 六 日</span></div><div class="calendar-grid"><div v-for="i in firstDayOffset" class="h-8"></div><div v-for="d in daysInViewMonth" :key="d" @click="signDay(d)" class="day-cell" :class="{'day-signed': history[`${viewYear}-${viewMonth}-${d}`]?.signed}">{{ d }}</div></div></div><div class="card p-4"><textarea v-model="tempNote" class="w-full text-xs bg-slate-50 p-3 rounded-xl h-20 outline-none" placeholder="记录今日重要进展..."></textarea><button @click="saveNote" class="w-full bg-purple-500 text-white text-[10px] font-black py-3 rounded-xl mt-2">存档复盘</button></div><div class="space-y-3"><div v-for="(v, k) in sortedHistory" :key="k" class="card p-3"><div class="flex justify-between text-[9px] font-bold text-slate-300 mb-1"><span>{{ k }}</span><span>{{ v.type || '日常' }}</span></div><p class="text-xs leading-relaxed text-slate-600">{{ v.note }}</p></div></div></section>
-
-        <div v-if="editingWish" class="fixed inset-0 bg-white z-50 p-8 flex flex-col">
-            <div class="flex justify-between items-center mb-8"><h2 class="text-xl font-black italic">WISH EDIT</h2><button @click="editingWish = null" class="text-2xl text-slate-300">✕</button></div>
-            <div class="space-y-6 flex-1">
-                <div class="flex gap-2">
-                    <div v-for="c in ['pink','green','blue','purple']" @click="editingWish.colorClass = 'color-'+c" class="w-8 h-8 rounded-full border-2" :class="['color-'+c, editingWish.colorClass === 'color-'+c ? 'border-indigo-500' : 'border-transparent']"></div>
-                </div>
-                <input v-model="editingWish.title" class="w-full text-sm font-bold border-b p-2 outline-none" placeholder="愿望名称">
-                <input v-model.number="editingWish.price" type="number" class="w-full p-3 bg-slate-50 rounded-xl font-mono text-sm" placeholder="目标金额">
-                <textarea v-model="editingWish.note" class="w-full p-3 bg-slate-50 rounded-xl text-xs h-24 outline-none" placeholder="我的备注..."></textarea>
-            </div>
-            <div class="flex gap-4 pt-6"><button v-if="editingWish.id" @click="deleteWish(editingWish.id)" class="text-rose-400 font-bold text-xs">删除</button><button @click="saveWish" class="flex-1 bg-indigo-500 text-white py-4 rounded-2xl font-black text-sm">保存存档</button></div>
-        </div>
-
-        <div v-if="selectedSkill" class="fixed inset-0 bg-white z-50 p-6 flex flex-col">
-            <div class="flex justify-between items-center mb-8"><button @click="selectedSkill = null" class="text-slate-300">✕ 返回</button></div>
-            <div class="flex-1 space-y-6">
-                <div class="text-center"><h2 class="text-2xl font-black">{{ selectedSkill.name }}</h2><p class="text-xs text-indigo-400 mt-1 font-bold">Lv.{{ Math.floor(selectedSkill.xp/1000)+1 }}</p></div>
-                <div class="card p-5 space-y-4">
-                    <input v-model="manualEntry.desc" placeholder="完成了什么具体事情？" class="w-full text-xs p-3 bg-slate-50 rounded-xl outline-none">
-                    <div class="flex gap-2">
-                        <button @click="boostSkill(selectedSkill, 20)" class="flex-1 bg-emerald-50 text-emerald-500 py-3 rounded-xl text-[10px] font-black">小进展 (+20)</button>
-                        <button @click="boostSkill(selectedSkill, 50)" class="flex-1 bg-purple-50 text-purple-500 py-3 rounded-xl text-[10px] font-black">突破性 (+50)</button>
+            <div v-else class="space-y-3">
+                <div v-for="w in doneWishes" :key="w.id" @click="editWish(w)" class="card p-4 flex justify-between items-center bg-slate-50">
+                    <div>
+                        <div class="text-xs font-bold text-slate-400 line-through">{{ w.title }}</div>
+                        <div class="text-[8px] text-slate-300 mt-1">达成: {{ w.doneDate || '未知' }}</div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-50 flex justify-around py-4 pb-8 z-40">
-            <div v-for="t in tabs" :key="t.id" @click="activeTab = t.id" class="flex flex-col items-center space-y-1" :class="{'nav-active': activeTab === t.id}"><span class="text-xl">{{ t.icon }}</span><span class="text-[8px] font-black uppercase">{{ t.label }}</span></div>
-        </nav>
-    </div>
-
-    <script>
-        const { createApp, ref, computed, onMounted, watch } = Vue;
-        createApp({
-            setup() {
-                const activeTab = ref('home');
-                const tabs = [{id:'home',icon:'💎',label:'看板'},{id:'todo',icon:'⚡',label:'任务'},{id:'skill',icon:'🧬',label:'技能'},{id:'wish',icon:'🌈',label:'愿望'},{id:'wealth',icon:'💰',label:'资产'},{id:'history',icon:'📖',label:'复盘'}];
-                const user = ref({ title: '觉醒者', wealth: 0, status: '正常' });
-                const attributes = ref({ int: { name: '智慧 INT', xp: 0, color: 'bg-indigo-400' }, str: { name: '力量 STR', xp: 0, color: 'bg-rose-400' }, san: { name: '心情 SAN', xp: 0, color: 'bg-amber-400' } });
-                const wealthParts = ref({ ali: 0, bank: 0, cmb: 0, other: 0, wechat: 0 });
-                const wealthLabel = { ali: '支付宝理财', bank: '银行存款', cmb: '招商理财', other: '其他理财', wechat: '微信余额' };
-                const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int' }]);
-                const todayTasks = ref([]);
-                const history = ref({});
-                const wishes = ref([]);
-                const wishTab = ref('active');
-                const editingWish = ref(null);
-                const selectedSkill = ref(null);
-                const manualEntry = ref({ desc: '' });
-                const newTask = ref({ name: '', targetType: 'skill', skillId: 1, type: '主线' });
-                const tempNote = ref("");
-                const now = new Date();
-                const viewYear = ref(now.getFullYear());
-                const viewMonth = ref(now.getMonth() + 1);
-
-                const displayAttributes = computed(() => {
-                    const res = {};
-                    Object.keys(attributes.value).forEach(k => {
-                        const xp = attributes.value[k].xp;
-                        res[k] = { name: attributes.value[k].name, valDisplay: 'Lv.' + (Math.floor(xp / 1000) + 1), percent: (xp % 1000) / 10, color: attributes.value[k].color };
-                    });
-                    res['wealth'] = { name: '资产余额', valDisplay: '￥' + user.value.wealth.toLocaleString(), percent: 100, color: 'bg-emerald-400' };
-                    return res;
-                });
-
-                const statusColor = computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低电量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200'));
-                const activeWishes = computed(() => wishes.value.filter(w => !w.done));
-                const doneWishes = computed(() => wishes.value.filter(w => w.done));
-                const tasksDoneToday = computed(() => todayTasks.value.filter(t => t.done).length);
-                const sortedHistory = computed(() => Object.keys(history.value).sort().reverse().reduce((o, k) => { o[k] = history.value[k]; return o; }, {}));
-                const daysInViewMonth = computed(() => new Date(viewYear.value, viewMonth.value, 0).getDate());
-                const firstDayOffset = computed(() => { let first = new Date(viewYear.value, viewMonth.value - 1, 1).getDay(); return first === 0 ? 6 : first - 1; });
-
-                const getWeeklySignClass = (day) => {
-                    // 这里逻辑简化：如果历史中有对应日期的记录则变亮
-                    return Math.random() > 0.4 ? statusColor.value : 'bg-slate-100';
-                };
-
-                const addTask = () => { if(newTask.value.name) { todayTasks.value.push({ ...newTask.value, done: false }); newTask.value.name = ""; } };
-                const toggleTask = (i) => {
-                    const t = todayTasks.value[i]; t.done = !t.done;
-                    const gain = t.type === '主线' ? 50 : 20; const mult = t.done ? 1 : -1;
-                    if(t.targetType === 'skill') {
-                        const s = skills.value.find(sk => sk.id == t.skillId);
-                        if(s) { s.xp += (gain * mult); if(t.done) s.count++; attributes.value[s.bindAttr].xp += (gain * mult); }
-                    } else { attributes.value[t.targetType].xp += (gain * mult); }
-                };
-                const addWish = () => { editingWish.value = { title: '', price: 0, note: '', colorClass: 'color-purple', done: false }; };
-                const editWish = (w) => { editingWish.value = { ...w }; };
-                const saveWish = () => {
-                    if(!editingWish.value.title) return;
-                    if(!editingWish.value.id) { editingWish.value.id = Date.now(); wishes.value.push(editingWish.value); }
-                    else { const idx = wishes.value.findIndex(w => w.id === editingWish.value.id); wishes.value[idx] = editingWish.value; }
-                    editingWish.value = null;
-                };
-                const toggleWish = (w) => { w.done = !w.done; };
-                const deleteWish = (id) => { wishes.value = wishes.value.filter(w => w.id !== id); editingWish.value = null; };
-                const confirmWealth = () => { user.value.wealth = tempTotalWealth.value; alert("核算完成！"); };
-                const signDay = (d) => {
-                    const k = `${viewYear.value}-${viewMonth.value}-${d}`;
-                    if(!history.value[k]) history.value[k] = { signed: true, note: '今日打卡' };
-                    else history.value[k].signed = !history.value[k].signed;
-                };
-                const saveNote = () => { const key = `${new Date().toLocaleString()}`; history.value[key] = { note: tempNote.value, signed: true }; tempNote.value = ""; alert("已存档"); };
-                const addSkill = () => { const n = prompt("名称:"); if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int' }); };
-                const boostSkill = (skill, amount) => {
-                    if(!manualEntry.value.desc) return;
-                    skill.xp += amount; skill.count++; attributes.value[skill.bindAttr].xp += amount;
-                    history.value[`${new Date().toLocaleString()}`] = { note: `[技能]${skill.name}:${manualEntry.value.desc}`, signed: true };
-                    manualEntry.value.desc = ""; alert("注入完成");
-                };
-
-                onMounted(() => {
-                    const s = localStorage.getItem('LifeOS_V13_Final');
-                    if(s) {
-                        const d = JSON.parse(s);
-                        user.value = d.user; attributes.value = d.attributes; skills.value = d.skills; 
-                        history.value = d.history || {}; todayTasks.value = d.todayTasks || [];
-                        wishes.value = d.wishes || []; wealthParts.value = d.wealthParts || wealthParts.value;
-                    }
-                });
-                watch([user, attributes, skills, history, todayTasks, wishes, wealthParts], () => {
-                    localStorage.setItem('LifeOS_V13_Final', JSON.stringify({
-                        user: user.value, attributes: attributes.value, skills: skills.value, 
-                        history: history.value, todayTasks: todayTasks.value, wishes: wishes.value, wealthParts: wealthParts.value
-                    }));
-                }, { deep: true });
-
-                const tempTotalWealth = computed(() => Object.values(wealthParts.value).reduce((s, n) => s + (parseFloat(n) || 0), 0));
-
-                return {
-                    activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wishes, wishTab, editingWish, selectedSkill, manualEntry, newTask, tempNote,
-                    displayAttributes, statusColor, activeWishes, doneWishes, tasksDoneToday, sortedHistory, viewYear, viewMonth, daysInViewMonth, firstDayOffset, tempTotalWealth,
-                    addTask, toggleTask, addWish, editWish, saveWish, toggleWish, deleteWish, confirmWealth, signDay, saveNote, addSkill, boostSkill, getWeeklySignClass
-                };
-            }
-        }).mount('#app')
-    </script>
-</body>
-</html>
+                    <div class="text-right text-[10px] font-bold
