@@ -163,6 +163,18 @@
                     <button @click="renderChart('ali')" class="text-[9px] font-bold px-3 py-1 bg-blue-50 text-blue-500 rounded-lg">支付宝</button>
                     <button @click="renderChart('wechat')" class="text-[9px] font-bold px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg">微信</button>
                 </div>
+                <div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
+    <button @click="chartTimeRange = 'week'; renderChart('total')" 
+        class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
+        :class="chartTimeRange === 'week' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
+        7 Days
+    </button>
+    <button @click="chartTimeRange = 'month'; renderChart('total')" 
+        class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
+        :class="chartTimeRange === 'month' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
+        30 Days
+    </button>
+</div>
             </div>
 
             <div class="card p-6 space-y-4 shadow-xl shadow-fuchsia-100/30 border-none">
@@ -326,6 +338,7 @@
                 const wealthLabel = { ali: '支付宝理财', bank: '银行存款', cmb: '招商理财', other: '其他账户', wechat: '微信余额' };
                 const wealthHistory = ref([]);
                 const showWealthChart = ref(false);
+                const chartTimeRange = ref('week'); // 默认显示一周
                 let wealthChart = null;
 
                 // 技能逻辑
@@ -421,17 +434,49 @@
 
                 const renderChart = (type) => {
                     nextTick(() => {
-                        const ctx = document.getElementById('wealthLineChart').getContext('2d');
+                        const canvas = document.getElementById('wealthLineChart');
+                        if(!canvas) return;
+                        const ctx = canvas.getContext('2d');
                         if(wealthChart) wealthChart.destroy();
-                        const labels = wealthHistory.value.slice(-7).map(l => l.date.split('/')[2] + '日');
-                        let data = type === 'total' ? wealthHistory.value.slice(-7).map(l => l.total) : wealthHistory.value.slice(-7).map(l => l.parts[type] || 0);
+
+                        // 决定显示多少天的数据
+                        const limit = chartTimeRange.value === 'week' ? 7 : 30;
+                        const filteredData = wealthHistory.value.slice(-limit);
+
+                        // 坐标轴显示：周视图显示“日”，月视图显示“月/日”
+                        const labels = filteredData.map(l => {
+                            const parts = l.date.split('/');
+                            return chartTimeRange.value === 'week' ? (parts[2] || parts[1]) + '日' : parts[1] + '/' + parts[2];
+                        });
+
+                        let data = type === 'total' ? filteredData.map(l => l.total) : filteredData.map(l => l.parts[type] || 0);
+
                         wealthChart = new Chart(ctx, {
                             type: 'line',
                             data: {
                                 labels: labels,
-                                datasets: [{ label: '趋势', data: data, borderColor: '#d946ef', backgroundColor: 'rgba(217, 70, 239, 0.1)', fill: true, tension: 0.4, pointRadius: 4 }]
+                                datasets: [{ 
+                                    label: '趋势', 
+                                    data: data, 
+                                    borderColor: '#d946ef', 
+                                    backgroundColor: 'rgba(217, 70, 239, 0.1)', 
+                                    fill: true, 
+                                    tension: 0.4, 
+                                    pointRadius: filteredData.length > 10 ? 2 : 4 
+                                }]
                             },
-                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } }
+                            options: { 
+                                responsive: true, 
+                                maintainAspectRatio: false, 
+                                plugins: { legend: { display: false } }, 
+                                scales: { 
+                                    y: { display: false }, 
+                                    x: { 
+                                        grid: { display: false },
+                                        ticks: { font: { size: 8 }, maxRotation: 0 }
+                                    } 
+                                } 
+                            }
                         });
                     });
                 };
@@ -553,7 +598,7 @@ const importData = () => {
                     activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
                     displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
                     statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低电量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
-                    addTask, toggleTask, confirmWealth, renderChart, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
+                    addTask, toggleTask, confirmWealth, renderChart, chartTimeRange, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
     searchQuery, isHistoryOpen, dailyStatus, filteredHistory, deleteHistory
 };
             }
