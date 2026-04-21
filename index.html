@@ -156,29 +156,39 @@
                 <button @click="showWealthChart = !showWealthChart" class="p-2 bg-white rounded-xl shadow-sm text-lg">📈</button>
             </div>
 
-                    <div class="flex justify-around mt-4">
-    <div v-if="showWealthChart" class="card p-4 animate-in zoom-in border-none shadow-xl">
-                <div class="chart-container"><canvas id="wealthLineChart"></canvas></div>
-                
-                <div class="flex justify-around mt-4">
-                    <button @click="renderChart('total')" class="text-[9px] font-bold px-3 py-1 bg-slate-100 rounded-lg">总资产</button>
-                    <button @click="renderChart('ali')" class="text-[9px] font-bold px-3 py-1 bg-blue-50 text-blue-500 rounded-lg">支付宝理财</button>
-                    <button @click="renderChart('bank')" class="text-[9px] font-bold px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg">银行存款</button>
-                </div>
+                    <div v-if="showWealthChart" class="card p-4 animate-in zoom-in border-none shadow-xl">
+    <div class="chart-container"><canvas id="wealthLineChart"></canvas></div>
+    
+    <div class="flex justify-center space-x-3 mt-4">
+        <button @click="renderChart('total')" 
+            class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl transition-all"
+            :class="chartTimeRange === '7days' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
+            📅 近7日趋势
+        </button>
+        <button @click="renderChart('monthly')" 
+            class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl transition-all"
+            :class="chartTimeRange === 'monthly' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
+            🗓️ 每月1号趋势
+        </button>
+    </div>
 
-                <div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
-                    <button @click="chartTimeRange = 'week'; renderChart('total')" 
-                        class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
-                        :class="chartTimeRange === 'week' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
-                        最近记录
-                    </button>
-                    <button @click="chartTimeRange = 'monthly'; renderChart('total')" 
-                        class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
-                        :class="chartTimeRange === 'monthly' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
-                        每月1号趋势
-                    </button>
-                </div>
-            </div>
+    <div class="mt-4 pt-3 border-t border-slate-50">
+        <div class="flex items-center justify-between text-[8px] text-slate-300 font-black uppercase mb-1 px-1">
+            <span>Start Date</span>
+            <span>End Date</span>
+        </div>
+        <div class="flex gap-2">
+            <input type="date" v-model="filterStartDate" 
+                class="flex-1 bg-slate-50 border-none rounded-lg p-2 text-[10px] font-bold text-slate-600 focus:ring-1 focus:ring-fuchsia-200">
+            <input type="date" v-model="filterEndDate" 
+                class="flex-1 bg-slate-50 border-none rounded-lg p-2 text-[10px] font-bold text-slate-600 focus:ring-1 focus:ring-fuchsia-200">
+            <button @click="renderChart('custom')" 
+                class="bg-slate-800 text-white px-4 rounded-lg text-[10px] font-black uppercase tracking-tighter hover:bg-fuchsia-600 transition-colors">
+                对比
+            </button>
+        </div>
+    </div>
+</div>
         </section>
 
         <section v-show="activeTab === 'history'" class="space-y-4 animate-in slide-in-from-right">
@@ -349,6 +359,8 @@
                 // 复盘逻辑
                 const history = ref({});
                 const tempNote = ref("");
+                const filterStartDate = ref("");
+                const filterEndDate = ref("");
                 const searchQuery = ref(""); // 搜索关键词
                 const isHistoryOpen = ref(false); // 历史书折叠状态
                 const dailyStatus = ref('正常'); // 复盘选择的状态
@@ -423,68 +435,66 @@
                     if(showWealthChart.value) renderChart('total');
                 };
 
-                const renderChart = (type) => {
-                    nextTick(() => {
-                        const canvas = document.getElementById('wealthLineChart');
-                        if(!canvas) return;
-                        const ctx = canvas.getContext('2d');
-                        if(wealthChart) wealthChart.destroy();
+                const renderChart = (mode) => {
+    // 1. 确定我们要看哪种模式：7天、每月1号、还是自定义
+    if (mode === 'total') chartTimeRange.value = '7days';
+    else if (mode === 'monthly' || mode === 'custom') chartTimeRange.value = mode;
 
-                        let filteredData = [];
-                        
-                        if (chartTimeRange.value === 'monthly') {
-                            // 逻辑：只筛选日期为 1 号的记录
-                            filteredData = wealthHistory.value.filter(item => {
-                                // 兼容不同浏览器的日期格式判断
-                                const day = new Date(item.date).getDate();
-                                return day === 1;
-                            }).slice(-6); 
-                        } else {
-                            // 默认取最后 7 条记录
-                            filteredData = wealthHistory.value.slice(-7);
-                        }
+    nextTick(() => {
+        const canvas = document.getElementById('wealthLineChart');
+        if(!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if(wealthChart) wealthChart.destroy(); // 删掉旧图，准备画新图
 
-                        // 坐标轴标签
-                        const labels = filteredData.map(l => {
-                            const d = new Date(l.date);
-                            return chartTimeRange.value === 'monthly' ? (d.getMonth() + 1) + '月' : (d.getDate()) + '日';
-                        });
+        let filteredData = [];
 
-                        // 数据提取
-                        let chartData = [];
-                        if (type === 'total') {
-                            chartData = filteredData.map(l => l.total);
-                        } else {
-                            // 这里的 type 会传入 'ali' 或 'bank'，直接对应 wealthParts 的 key
-                            chartData = filteredData.map(l => l.parts[type] || 0);
-                        }
+        // 2. 根据模式筛选数据
+        if (chartTimeRange.value === '7days') {
+            filteredData = wealthHistory.value.slice(-7); // 只拿最后7条
+        } else if (chartTimeRange.value === 'monthly') {
+            filteredData = wealthHistory.value.filter(l => {
+                const day = l.date.includes('/') ? l.date.split('/')[2] : l.date.split('-')[2];
+                return parseInt(day) === 1; // 只要每个月的1号
+            });
+        } else if (chartTimeRange.value === 'custom') {
+            if(!filterStartDate.value || !filterEndDate.value) {
+                alert("请先选好开始和结束日期哦！");
+                return;
+            }
+            const start = new Date(filterStartDate.value).getTime();
+            const end = new Date(filterEndDate.value).getTime();
+            filteredData = wealthHistory.value.filter(l => {
+                const current = new Date(l.date).getTime();
+                return current >= start && current <= end; // 只要在这个范围内的数据
+            });
+        }
 
-                        wealthChart = new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: labels,
-                                datasets: [{ 
-                                    label: '金额', 
-                                    data: chartData, 
-                                    borderColor: type === 'ali' ? '#3b82f6' : (type === 'bank' ? '#10b981' : '#d946ef'), 
-                                    backgroundColor: 'rgba(217, 70, 239, 0.05)', 
-                                    fill: true, 
-                                    tension: 0.4, 
-                                    pointRadius: 4 
-                                }]
-                            },
-                            options: { 
-                                responsive: true, 
-                                maintainAspectRatio: false, 
-                                plugins: { legend: { display: false } }, 
-                                scales: { 
-                                    y: { display: false }, 
-                                    x: { grid: { display: false }, ticks: { font: { size: 8 } } } 
-                                } 
-                            }
-                        });
-                    });
-                };
+        // 3. 把筛选好的数据喂给图表插件
+        const labels = filteredData.map(l => l.date.slice(5)); 
+        const chartData = filteredData.map(l => l.total);
+
+        wealthChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{ 
+                    data: chartData, 
+                    borderColor: '#d946ef', 
+                    backgroundColor: 'rgba(217, 70, 239, 0.05)', 
+                    fill: true, tension: 0.4, pointRadius: 4 
+                }]
+            },
+            options: { 
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { 
+                    y: { display: false }, 
+                    x: { grid: { display: false }, ticks: { font: { size: 7 } } } 
+                } 
+            }
+        });
+    });
+};
 
                 const addWish = () => { editingWish.value = { title: '', price: 0, sanExp: 100, colorClass: 'color-purple', done: false }; };
                 const editWish = (w) => { editingWish.value = { ...w }; };
@@ -603,7 +613,7 @@ const importData = () => {
                     activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, 
                     showWealthChart, wealthHistory, tempTotalWealth, displayAttributes, tasksDoneToday, 
                     activeWishes, doneWishes, wishTab, editingWish, newTask, selectedSkill, showSkillChartModal,
-                    confirmWealth, toggleTask, addTask, signDay, addSkill, saveWish, editWish, deleteWish, 
+                    confirmWealth, filterStartDate, filterEndDate, toggleTask, addTask, signDay, addSkill, saveWish, editWish, deleteWish, 
                     toggleWish, exportData, importData, saveNote, renderChart, chartTimeRange,
                     viewYear, viewMonth, daysInViewMonth, firstDayOffset, weeklySignStatus,
                     tempNote, searchQuery, isHistoryOpen, dailyStatus, filteredHistory, deleteHistory
