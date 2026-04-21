@@ -158,28 +158,36 @@
 
             <div v-if="showWealthChart" class="card p-4 animate-in zoom-in border-none shadow-xl">
                 <div class="chart-container"><canvas id="wealthLineChart"></canvas></div>
-                <div class="flex justify-around mt-4">
-                    <div class="flex justify-around mt-4">
-    <button @click="renderChart('total')" class="text-[9px] font-bold px-3 py-1 bg-slate-100 rounded-lg">总资产</button>
-    <button @click="renderChart('alipay')" class="text-[9px] font-bold px-3 py-1 bg-blue-50 text-blue-500 rounded-lg">支付宝理财</button>
-    <button @click="renderChart('others')" class="text-[9px] font-bold px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg">银行存款</button>
+                <!-- 仅保留“总资产” -->
+<div class="flex justify-center mt-4">
+    <button @click="renderChart()" class="text-[10px] font-bold px-4 py-1 bg-fuchsia-100 text-fuchsia-600 rounded-lg">
+        总资产趋势
+    </button>
 </div>
 
-<div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
-    <button @click="chartTimeRange = 'recent'; renderChart('total')" ...>最近记录</button>
-    <button @click="chartTimeRange = 'monthly'; renderChart('total')" ...>每月1号趋势</button>
-</div>
-                </div>
-                <div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
-    <button @click="chartTimeRange = 'week'; renderChart('total')" 
-        class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
-        :class="chartTimeRange === 'week' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
-        7 Days
+<!-- 日期对比 -->
+<div class="flex items-center justify-between mt-4 space-x-2">
+    <input type="date" v-model="startDate" class="text-[10px] p-1 rounded border border-slate-200">
+    <input type="date" v-model="endDate" class="text-[10px] p-1 rounded border border-slate-200">
+    <button @click="renderChart()" class="text-[10px] px-3 py-1 bg-slate-800 text-white rounded-lg">
+        对比
     </button>
-    <button @click="chartTimeRange = 'month'; renderChart('total')" 
-        class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
-        :class="chartTimeRange === 'month' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
-        30 Days
+</div>
+
+<!-- 趋势模式 -->
+<div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
+    <button 
+        @click="chartMode = 'monthly'; renderChart()" 
+        :class="chartMode === 'monthly' ? 'bg-fuchsia-500 text-white' : 'bg-slate-100 text-slate-400'"
+        class="text-[9px] px-3 py-1 rounded-lg">
+        月趋势（1号）
+    </button>
+
+    <button 
+        @click="chartMode = 'range'; renderChart()" 
+        :class="chartMode === 'range' ? 'bg-fuchsia-500 text-white' : 'bg-slate-100 text-slate-400'"
+        class="text-[9px] px-3 py-1 rounded-lg">
+        自由对比
     </button>
 </div>
             </div>
@@ -345,7 +353,9 @@
                 const wealthLabel = { ali: '支付宝理财', bank: '银行存款', cmb: '招商理财', other: '其他账户', wechat: '微信余额' };
                 const wealthHistory = ref([]);
                 const showWealthChart = ref(false);
-                const chartTimeRange = ref('week'); // 默认显示一周
+                const chartMode = ref('monthly'); // 默认月趋势
+const startDate = ref('');
+const endDate = ref('');
                 let wealthChart = null;
 
                 // 技能逻辑
@@ -430,7 +440,7 @@
                     const lastTotal = user.value.wealth;
                     user.value.wealth = tempTotalWealth.value;
                     wealthHistory.value.push({
-                        date: new Date().toLocaleDateString(),
+                        date: new Date().toISOString().split('T')[0],
                         total: user.value.wealth,
                         change: user.value.wealth - lastTotal,
                         parts: { ...wealthParts.value }
@@ -439,72 +449,71 @@
                     if(showWealthChart.value) renderChart('total');
                 };
 
-                const renderChart = (type) => {
-                    nextTick(() => {
-                        const canvas = document.getElementById('wealthLineChart');
-                        if(!canvas) return;
-                        const ctx = canvas.getContext('2d');
-                        if(wealthChart) wealthChart.destroy();
+                const renderChart = () => {
+    nextTick(() => {
+        const canvas = document.getElementById('wealthLineChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (wealthChart) wealthChart.destroy();
 
-                        let filteredData = [];
-                        
-                        if (chartTimeRange.value === 'monthly') {
-                            // --- 逻辑 A：只提取每月 1 号的数据 ---
-                            // 遍历历史，只保留日期结尾是 "/1" 的记录
-                            filteredData = wealthHistory.value.filter(item => {
-                                const parts = item.date.split('/');
-                                return parts[2] === "1"; 
-                            }).slice(-6); // 只取最近 6 个月
-                        } else {
-                            // --- 逻辑 B：默认取最近 7 次记录 ---
-                            filteredData = wealthHistory.value.slice(-7);
-                        }
+        let data = [...wealthHistory.value];
 
-                        // 坐标轴标签：月视图显示“X月”，周视图显示“X日”
-                        const labels = filteredData.map(l => {
-                            const p = l.date.split('/');
-                            return chartTimeRange.value === 'monthly' ? `${p[1]}月` : `${p[2]}日`;
-                        });
+        // ===== 模式1：自由日期对比 =====
+        if (chartMode.value === 'range' && startDate.value && endDate.value) {
+            const start = new Date(startDate.value);
+            const end = new Date(endDate.value);
 
-                        // --- 关键修改：匹配你的输入框字段 ---
-                        let chartData = [];
-                        if (type === 'total') {
-                            chartData = filteredData.map(l => l.total);
-                        } else if (type === 'alipay') {
-                            // 对应你 wealthParts 里的“支付宝理财”
-                            chartData = filteredData.map(l => l.parts['支付宝理财'] || 0);
-                        } else if (type === 'others') {
-                            // 对应你 wealthParts 里的“银行存款”
-                            chartData = filteredData.map(l => l.parts['银行存款'] || 0);
-                        }
+            data = data.filter(item => {
+                const d = new Date(item.date);
+                return d >= start && d <= end;
+            });
+        }
 
-                        wealthChart = new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: labels,
-                                datasets: [{ 
-                                    label: '金额', 
-                                    data: chartData, 
-                                    borderColor: type === 'alipay' ? '#3b82f6' : (type === 'others' ? '#10b981' : '#d946ef'), 
-                                    backgroundColor: 'rgba(217, 70, 239, 0.05)', 
-                                    fill: true, 
-                                    tension: 0.4, 
-                                    pointRadius: 4 
-                                }]
-                            },
-                            options: { 
-                                responsive: true, 
-                                maintainAspectRatio: false, 
-                                plugins: { legend: { display: false } }, 
-                                scales: { 
-                                    y: { display: false }, 
-                                    x: { grid: { display: false }, ticks: { font: { size: 8 } } } 
-                                } 
-                            }
-                        });
-                    });
-                };
+        // ===== 模式2：默认月趋势（只取每月1号）=====
+        else {
+            data = data.filter(item => {
+                const d = new Date(item.date);
+                return d.getDate() === 1;
+            });
+        }
 
+        // 防止空数据
+        if (data.length === 0) return;
+
+        const labels = data.map(d => {
+            const dt = new Date(d.date);
+            return chartMode.value === 'monthly'
+                ? `${dt.getMonth() + 1}月`
+                : `${dt.getMonth() + 1}/${dt.getDate()}`;
+        });
+
+        const values = data.map(d => d.total);
+
+        wealthChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    data: values,
+                    borderColor: '#d946ef',
+                    backgroundColor: 'rgba(217,70,239,0.08)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { display: false },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    });
+};
                 const addWish = () => { editingWish.value = { title: '', price: 0, sanExp: 100, colorClass: 'color-purple', done: false }; };
                 const editWish = (w) => { editingWish.value = { ...w }; };
                 const saveWish = () => {
