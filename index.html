@@ -2,539 +2,92 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LifeOS Pro V15 | Ultimate Edition</title>
-    <script src="https://cdn.staticfile.org/vue/3.3.4/vue.global.prod.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LifeOS V15 Master</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        [v-cloak] { display: none; }
-        body { background-color: #fdf2f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding-bottom: 100px; color: #1e293b; }
-        .card { background: white; border-radius: 24px; border: 1px solid #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
-        .nav-active { color: #d946ef; font-weight: 900; }
-        .progress-mini { height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
-        .progress-fill { height: 100%; transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .bg-dreamy { background: linear-gradient(135deg, #fdf2f8 0%, #f5f3ff 100%); min-height: 100vh; }
-        .chart-container { position: relative; height: 180px; width: 100%; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .day-cell { aspect-ratio: 1/1; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 10px; background: white; cursor: pointer; border: 1px solid #f8fafc; }
-        .day-signed { background: #d946ef !important; color: white; font-weight: bold; border: none; }
-        .color-pink { background: #fdf2f8; } .color-green { background: #f0fdf4; }
-        .color-blue { background: #eff6ff; } .color-purple { background: #f5f3ff; }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { font-family: 'PingFang SC', system-ui, sans-serif; background: #f8fafc; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="bg-dreamy">
-    <div id="app" v-cloak class="max-w-md mx-auto px-4 pt-6">
-
-        <section v-show="activeTab === 'home'" class="space-y-4 animate-in fade-in">
-            <div class="flex items-center justify-between px-1">
-                <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-2xl shadow-fuchsia-100">🦄</div>
-                    <div>
-                        <h1 class="text-[10px] font-black text-fuchsia-400 uppercase tracking-widest">Aura Level</h1>
-                        <div class="flex items-center space-x-1">
-                            <div class="w-2 h-2 rounded-full animate-pulse" :class="statusColor"></div>
-                            <span class="text-xs font-bold text-slate-600">{{ user.status }}</span>
-                        </div>
-                    </div>
-                </div>
-               <div class="flex space-x-2 mb-2">
-    <button @click="exportData" class="flex-1 bg-white/80 py-2 rounded-xl text-[10px] font-black text-slate-500 shadow-sm uppercase tracking-widest">📤 导出记忆</button>
-    <button @click="importData" class="flex-1 bg-white/80 py-2 rounded-xl text-[10px] font-black text-fuchsia-500 shadow-sm uppercase tracking-widest">📥 注入记忆</button>
-</div>
-                <div class="flex space-x-1.5 bg-white/60 p-2 rounded-2xl backdrop-blur-sm shadow-sm">
-                    <div v-for="(signed, d) in weeklySignStatus" :key="d" class="flex flex-col items-center">
-                        <div class="w-1.5 h-1.5 rounded-full" :class="signed ? 'bg-fuchsia-400' : 'bg-slate-200'"></div>
-                        <span class="text-[7px] text-slate-400 mt-1 uppercase">{{ ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d] }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card p-5 grid grid-cols-2 gap-4 border-none shadow-xl shadow-fuchsia-100/40">
-                <div v-for="(attr, key) in displayAttributes" :key="key" class="space-y-1">
-                    <div class="flex justify-between items-end">
-                        <span class="text-[10px] font-black text-slate-400 uppercase">{{ attr.name }}</span>
-                        <span class="text-[10px] font-mono font-bold text-fuchsia-600">{{ attr.valDisplay }}</span>
-                    </div>
-                    <div class="progress-mini"><div class="progress-fill" :class="attr.color" :style="{width: attr.percent + '%'}"></div></div>
-                </div>
-            </div>
-
-            <div class="card p-4 border-none shadow-sm space-y-3">
-                <div class="flex justify-between items-center">
-                    <span class="text-[10px] font-black text-slate-400 uppercase">Mission Progress</span>
-                    <span class="text-[10px] font-bold text-fuchsia-400">{{ tasksDoneToday }}/{{ todayTasks.length }}</span>
-                </div>
-                <div v-for="t in todayTasks.slice(0, 2)" :key="t.id" class="flex items-center text-xs space-x-2 text-slate-500">
-                    <div class="w-1 h-1 rounded-full bg-fuchsia-300"></div>
-                    <span :class="t.done ? 'line-through opacity-40' : ''">{{ t.name }}</span>
-                </div>
-            </div>
-        </section>
-
-        <section v-show="activeTab === 'todo'" class="space-y-4 animate-in slide-in-from-right">
-            <h2 class="text-xl font-black italic text-slate-700">MISSIONS</h2>
-            <div class="space-y-3">
-                <div v-for="(t, i) in todayTasks" :key="i" class="card p-4 flex items-center justify-between border-none shadow-sm">
-                    <div @click="toggleTask(i)" class="flex items-center space-x-3 text-sm flex-1">
-                        <div class="w-5 h-5 border-2 rounded-lg transition-colors" :class="t.done ? 'bg-fuchsia-400 border-fuchsia-400' : 'border-slate-100'"></div>
-                        <span :class="{'line-through text-slate-300': t.done}">{{ t.name }}</span>
-                    </div>
-                    <button @click="todayTasks.splice(i,1)" class="text-slate-200 hover:text-rose-400 transition-colors">✕</button>
-                </div>
-            </div>
-            
-            <div class="card p-5 space-y-3 border-none shadow-xl shadow-fuchsia-100/20">
-                <input v-model="newTask.name" placeholder="设定一个新目标..." class="w-full text-sm border-b border-slate-100 p-2 outline-none focus:border-fuchsia-300 transition-colors bg-transparent">
-                <div class="grid grid-cols-2 gap-2">
-                    <select v-model="newTask.targetType" class="text-[10px] bg-slate-50 p-2 rounded-xl outline-none">
-                        <option value="skill">关联技能</option><option value="int">智慧 INT</option><option value="str">力量 STR</option><option value="san">心情 SAN</option>
-                    </select>
-                    <select v-if="newTask.targetType === 'skill'" v-model="newTask.skillId" class="text-[10px] bg-slate-50 p-2 rounded-xl outline-none">
-                        <option v-for="s in skills" :key="s.id" :value="s.id">{{s.name}}</option>
-                    </select>
-                    <select v-model="newTask.type" class="text-[10px] bg-slate-50 p-2 rounded-xl outline-none" :class="{'col-span-2': newTask.targetType !== 'skill'}">
-                        <option value="主线">主线奖励 (+50)</option><option value="支线">支线奖励 (+20)</option>
-                    </select>
-                </div>
-                <button @click="addTask" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-black text-xs shadow-lg tracking-widest uppercase">Launch Mission</button>
-            </div>
-        </section>
-
-        <section v-show="activeTab === 'skill'" class="space-y-4 animate-in slide-in-from-right">
-    <div class="flex justify-between items-center">
-        <h2 class="text-xl font-black italic text-slate-700 uppercase">Skill Tree</h2>
-        <div class="flex space-x-2">
-            <button @click="showSkillChartModal = true" class="p-2 bg-white rounded-xl shadow-sm text-lg">📊</button>
-            <button @click="addSkill" class="px-3 py-1.5 bg-fuchsia-500 text-white rounded-xl text-[10px] font-bold shadow-lg shadow-fuchsia-200">+ 添加</button>
-        </div>
-    </div>
-    
-    <div class="space-y-3">
-        <div v-for="s in skills" :key="s.id" class="card p-4 border-none shadow-sm transition-all">
-            <div class="flex items-center space-x-4">
-                <div @click="editingSkill = s" class="w-10 h-10 rounded-xl bg-fuchsia-50 flex items-center justify-center text-lg cursor-pointer hover:rotate-12 transition-transform">{{ s.icon || '📜' }}</div>
-                
-                <div class="flex-1">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-sm font-black text-slate-700">{{ s.name }}</span>
-                        <div class="flex items-center space-x-2">
-                             <span class="text-[8px] font-bold text-slate-400">INT:{{s.plusInt || 0}} SAN:{{s.plusSan || 0}} STR:{{s.plusStr || 0}}</span>
-                             <span class="text-[9px] font-mono font-bold text-fuchsia-400">Lv.{{ Math.floor(s.xp/1000)+1 }}</span>
-                        </div>
-                    </div>
-                    <div class="progress-mini"><div class="progress-fill bg-fuchsia-400" :style="{width: (s.xp%1000/10)+'%'}"></div></div>
-                    
-                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-50">
-                        <span class="text-[8px] text-slate-400 italic">LAST: {{s.lastUsed || 'NEVER'}}</span>
-                        <div class="flex space-x-3">
-                            <button @click="alert(s.insights?.map(i=>i.time + ': ' + i.content).join('\n') || '暂无轨迹')" class="text-[10px] font-black text-fuchsia-500 uppercase">Insight ({{s.count || 0}})</button>
-                            <button @click="deleteSkill(s.id)" class="text-[10px] font-black text-rose-400 uppercase">Delete</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-        <section v-show="activeTab === 'wish'" class="space-y-4 animate-in slide-in-from-right">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-black italic text-slate-700">WISHES</h2>
-                <div class="flex bg-white/60 p-1 rounded-xl text-[10px] font-bold shadow-sm">
-                    <button @click="wishTab='active'" :class="wishTab==='active'?'bg-white text-fuchsia-500 shadow-sm':''" class="px-4 py-1.5 rounded-lg transition-all">未实现</button>
-                    <button @click="wishTab='done'" :class="wishTab==='done'?'bg-white text-fuchsia-500 shadow-sm':''" class="px-4 py-1.5 rounded-lg transition-all">已达成</button>
-                </div>
-            </div>
-            <div v-if="wishTab==='active'" class="grid grid-cols-2 gap-3">
-                <div v-for="w in activeWishes" :key="w.id" @click="editWish(w)" class="card p-4 aspect-square flex flex-col justify-between border-none shadow-sm" :class="w.colorClass">
-                    <div class="flex justify-between"><span class="text-xs font-black">{{ w.title }}</span><input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500"></div>
-                    <div class="text-[9px] font-mono text-slate-400">EST. ￥{{ w.price }}</div>
-                </div>
-                <button @click="addWish" class="card aspect-square border-2 border-dashed border-fuchsia-100 text-fuchsia-200 text-3xl flex items-center justify-center">+</button>
-            </div>
-            <div v-else class="space-y-3">
-                <div v-for="w in doneWishes" :key="w.id" class="card p-4 flex justify-between items-center bg-white/40 border-none">
-                    <div>
-                        <div class="text-xs font-bold text-slate-400 line-through">{{ w.title }}</div>
-                        <div class="text-[8px] text-slate-300 mt-1">达成: {{ w.doneDate }}</div>
-                    </div>
-                    <div class="text-[10px] font-bold text-emerald-500">+{{ w.sanExp }} SAN</div>
-                </div>
-            </div>
-        </section>
-
-        <section v-show="activeTab === 'wealth'" class="space-y-4 animate-in slide-in-from-right">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-black italic text-slate-700 uppercase">Wealth Log</h2>
-                <button @click="showWealthChart = !showWealthChart" class="p-2 bg-white rounded-xl shadow-sm text-lg">📈</button>
-            </div>
-
-            <div v-if="showWealthChart" class="card p-4 animate-in zoom-in border-none shadow-xl">
-                <div class="chart-container"><canvas id="wealthLineChart"></canvas></div>
-                <div class="flex justify-around mt-4">
-                    <div class="flex justify-around mt-4">
-    <button @click="renderChart('total')" class="text-[9px] font-bold px-3 py-1 bg-slate-100 rounded-lg">总资产</button>
-    <button @click="renderChart('alipay')" class="text-[9px] font-bold px-3 py-1 bg-blue-50 text-blue-500 rounded-lg">支付宝理财</button>
-    <button @click="renderChart('others')" class="text-[9px] font-bold px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg">银行存款</button>
-</div>
-
-<div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
-    <button @click="chartTimeRange = 'recent'; renderChart('total')" ...>最近记录</button>
-    <button @click="chartTimeRange = 'monthly'; renderChart('total')" ...>每月1号趋势</button>
-</div>
-                </div>
-                <div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
-    <button @click="chartTimeRange = 'week'; renderChart('total')" 
-        class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
-        :class="chartTimeRange === 'week' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
-        7 Days
-    </button>
-    <button @click="chartTimeRange = 'month'; renderChart('total')" 
-        class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
-        :class="chartTimeRange === 'month' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
-        30 Days
-    </button>
-</div>
-            </div>
-
-            <div class="card p-6 space-y-4 shadow-xl shadow-fuchsia-100/30 border-none">
-                <div v-for="(label, key) in wealthLabel" :key="key" class="flex justify-between items-center bg-slate-50/50 p-3 rounded-2xl">
-                    <span class="text-xs font-bold text-slate-500">{{ label }}</span>
-                    <input type="number" v-model.number="wealthParts[key]" class="w-28 text-right font-mono font-bold text-sm bg-transparent outline-none text-fuchsia-600">
-                </div>
-                <div class="pt-2 text-center">
-                    <div class="text-[10px] text-slate-300 font-bold tracking-widest mb-1 uppercase">Total Estimation</div>
-                    <div class="text-3xl font-black text-slate-700 font-mono mb-4">￥{{ tempTotalWealth.toLocaleString() }}</div>
-                    <button @click="confirmWealth" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-black text-xs shadow-xl tracking-widest uppercase">Archive Data</button>
-                </div>
-            </div>
-        </section>
-<div v-if="editingSkill" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-    <div class="bg-white rounded-[32px] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 duration-300">
-        <h3 class="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-widest">Skill Tuning</h3>
+<body class="bg-slate-50 text-slate-900">
+    <div id="app" class="max-w-md mx-auto min-h-screen pb-24 relative shadow-2xl bg-white">
         
-        <div class="space-y-5">
+        <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-xl p-6 flex justify-between items-center border-b border-slate-100">
             <div>
-                <label class="text-[9px] font-black text-slate-400 uppercase">技能名称</label>
-                <input v-model="editingSkill.name" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-bold border-none outline-none focus:ring-2 ring-fuchsia-100">
+                <h1 class="text-2xl font-black italic tracking-tighter text-slate-800">LIFE OS <span class="text-fuchsia-500">V15</span></h1>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ user.title }}</p>
             </div>
-            
-            <div class="grid grid-cols-3 gap-3">
-                <div>
-                    <label class="text-[9px] font-black text-slate-400 uppercase text-center block">智慧 INT</label>
-                    <input v-model.number="editingSkill.plusInt" type="number" class="w-full p-3 bg-slate-50 rounded-xl text-xs text-center font-mono">
-                </div>
-                <div>
-                    <label class="text-[9px] font-black text-slate-400 uppercase text-center block">心情 SAN</label>
-                    <input v-model.number="editingSkill.plusSan" type="number" class="w-full p-3 bg-slate-50 rounded-xl text-xs text-center font-mono">
-                </div>
-                <div>
-                    <label class="text-[9px] font-black text-slate-400 uppercase text-center block">力量 STR</label>
-                    <input v-model.number="editingSkill.plusStr" type="number" class="w-full p-3 bg-slate-50 rounded-xl text-xs text-center font-mono">
-                </div>
-            </div>
-        </div>
-
-        <button @click="editingSkill = null" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xs shadow-xl uppercase tracking-widest mt-8">Save Changes</button>
-    </div>
-        <section v-show="activeTab === 'history'" class="space-y-4 animate-in slide-in-from-right">
-            <h2 class="text-xl font-black italic text-slate-700">CHRONICLE</h2>
-            
-            <div class="card p-4 border-none shadow-sm">
-                <div class="flex justify-between items-center mb-4 text-[10px] font-black px-1 uppercase text-slate-400">
-                    <span>{{ viewYear }} / {{ viewMonth }}</span>
-                    <div class="flex space-x-3"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
-                </div>
-                <div class="calendar-grid">
-                    <div v-for="i in firstDayOffset" :key="'empty-'+i" class="h-8"></div>
-                    <div v-for="d in daysInViewMonth" :key="d" @click="signDay(d)" class="day-cell" :class="{'day-signed': history[`${viewYear}-${viewMonth}-${d}`]?.signed}">{{ d }}</div>
-                </div>
-            </div>
-            
-            <div class="card p-4 border-none shadow-sm space-y-3">
-                <div class="text-[9px] font-black text-slate-300 uppercase tracking-widest text-center">Current Energy Status</div>
-                <div class="flex justify-around py-2">
-                    <button v-for="s in ['积极','正常','低能量']" :key="s" @click="dailyStatus = s" 
-                        class="flex items-center space-x-2 px-4 py-2 rounded-2xl transition-all border shadow-sm"
-                        :class="dailyStatus === s ? 'bg-slate-800 text-white border-slate-800 scale-105' : 'bg-white text-slate-400 border-slate-50'">
-                        <span class="w-2.5 h-2.5 rounded-full" :class="{'积极':'bg-emerald-400','正常':'bg-amber-400','低能量':'bg-rose-400'}[s]"></span>
-                        <span class="text-xs font-bold">{{ s }}</span>
-                    </button>
-                </div>
-                <textarea v-model="tempNote" class="w-full text-xs bg-slate-50/50 p-4 rounded-2xl h-24 outline-none border border-transparent focus:border-fuchsia-100 transition-all" placeholder="写下今日复盘记忆..."></textarea>
-                <button @click="saveNote" class="w-full bg-fuchsia-500 text-white text-[10px] font-black py-4 rounded-2xl shadow-lg shadow-fuchsia-100 uppercase tracking-widest">Save Memory</button>
-            </div>
-
-            <div class="space-y-3 pb-4">
-                <button @click="isHistoryOpen = !isHistoryOpen" class="w-full py-4 bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm text-[10px] font-black text-slate-400 uppercase tracking-widest flex justify-center items-center space-x-2">
-                    <span>{{ isHistoryOpen ? '📖 Close Chronicle' : '📘 Open Chronicle' }}</span>
-                </button>
-
-                <div v-if="isHistoryOpen" class="space-y-3 animate-in fade-in slide-in-from-top-2">
-                    <div class="relative px-1">
-                        <input v-model="searchQuery" placeholder="搜索记忆内容或日期..." class="w-full bg-white border-none rounded-2xl p-4 pl-10 text-xs outline-none shadow-sm focus:ring-1 ring-fuchsia-100">
-                        <span class="absolute left-4 top-4 opacity-30 text-xs">🔍</span>
-                    </div>
-
-                    <div v-for="(v, k) in filteredHistory" :key="k" class="card p-5 border-none shadow-sm relative group bg-white/80">
-                        <div class="flex justify-between items-center mb-3">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-[9px] font-black bg-slate-100 px-2 py-1 rounded text-slate-500 font-mono">{{ k }}</span>
-                                <div v-if="v.status" class="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-50">
-                                    <div class="w-1.5 h-1.5 rounded-full" :class="{'积极':'bg-emerald-400','正常':'bg-amber-400','低能量':'bg-rose-400'}[v.status]"></div>
-                                    <span class="text-[8px] font-bold text-slate-400">{{ v.status }}</span>
-                                </div>
-                            </div>
-                            <button @click="deleteHistory(k)" class="text-[10px] font-black text-rose-300 hover:text-rose-500 transition-colors px-2 py-1">DELETE</button>
-                        </div>
-                        <p class="text-xs leading-relaxed text-slate-600 italic">"{{ v.note }}"</p>
-                    </div>
-                    
-                    <div v-if="Object.keys(filteredHistory).length === 0" class="text-center py-10 text-slate-300 text-[10px] font-bold uppercase tracking-widest">
-                        No memories found
-                    </div>
-                </div>
-            </div>
-        </section>
-        ```
-
-        <div v-if="selectedSkill" class="fixed inset-0 bg-white/90 backdrop-blur-xl z-50 p-8 flex flex-col animate-in zoom-in">
-            <div class="flex justify-between items-center mb-8">
-                <button @click="selectedSkill = null" class="text-slate-400 font-black text-xs uppercase tracking-widest">✕ Close</button>
-                <div class="text-[10px] font-black bg-fuchsia-100 text-fuchsia-500 px-3 py-1 rounded-full uppercase">Insight</div>
-            </div>
-            <div class="flex-1 space-y-8 overflow-y-auto no-scrollbar">
-                <div class="text-center space-y-2">
-                    <div class="text-5xl mb-4">{{ selectedSkill.icon || '🧬' }}</div>
-                    <h2 class="text-3xl font-black text-slate-800">{{ selectedSkill.name }}</h2>
-                    <p class="text-sm font-bold text-fuchsia-400 tracking-widest uppercase">Level {{ Math.floor(selectedSkill.xp/1000)+1 }}</p>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="card p-4 bg-fuchsia-50/50 border-none shadow-none">
-                        <div class="text-[9px] font-black text-fuchsia-300 uppercase">注入总次数</div>
-                        <div class="text-xl font-mono font-black text-fuchsia-600">{{ selectedSkill.count || 0 }}次</div>
-                    </div>
-                    <div class="card p-4 bg-slate-50/50 border-none shadow-none">
-                        <div class="text-[9px] font-black text-slate-300 uppercase">最近活跃</div>
-                        <div class="text-[10px] font-bold text-slate-600 mt-2">{{ selectedSkill.lastUsed || '从未记录' }}</div>
-                    </div>
-                </div>
-                <div class="card p-5 bg-slate-800 text-white border-none shadow-xl space-y-4">
-                    <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Core Contribution</div>
-                    <div class="flex justify-around items-center">
-                        <div class="text-center">
-                            <div class="text-[9px] text-slate-500 mb-1">INT</div>
-                            <div class="text-lg font-mono text-indigo-400">+{{ selectedSkill.xp }}</div>
-                        </div>
-                        <div class="h-8 w-[1px] bg-slate-700"></div>
-                        <div class="text-center">
-                            <div class="text-[9px] text-slate-500 mb-1">SAN</div>
-                            <div class="text-lg font-mono text-amber-400">+{{ Math.floor(selectedSkill.xp/5) }}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="editingWish" class="fixed inset-0 bg-white/95 backdrop-blur-md z-50 p-8 animate-in fade-in zoom-in">
-            <div class="flex justify-between items-center mb-8">
-                <h2 class="text-xl font-black italic">WISH EDITOR</h2>
-                <button @click="editingWish = null" class="text-2xl text-slate-200">✕</button>
-            </div>
-            <div class="space-y-6">
-                <div class="flex gap-3">
-                    <div v-for="c in ['pink','green','blue','purple']" :key="c" @click="editingWish.colorClass = 'color-'+c" class="w-8 h-8 rounded-full border-2" :class="['color-'+c, editingWish.colorClass === 'color-'+c ? 'border-fuchsia-500' : 'border-transparent']"></div>
-                </div>
-                <input v-model="editingWish.title" placeholder="愿望名称" class="w-full text-xl font-black border-b-2 p-2 outline-none border-fuchsia-50 bg-transparent">
-<div class="grid grid-cols-2 gap-4">
-    <div><label class="text-[9px] font-black text-slate-300 uppercase">目标预算</label><input v-model.number="editingWish.price" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
-    <div><label class="text-[9px] font-black text-slate-300 uppercase">SAN 奖励</label><input v-model.number="editingWish.sanExp" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
-</div>
-
-<div class="mt-4">
-    <label class="text-[9px] font-black text-slate-300 uppercase">愿望备注 (Insight)</label>
-    <textarea 
-        v-model="editingWish.note" 
-        placeholder="写下关于这个愿望的详情或实现后的意义..." 
-        class="w-full p-4 bg-slate-50 rounded-2xl text-xs mt-1 outline-none min-h-[80px] border-none">
-    </textarea>
-</div>
-<button @click="saveWish" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xs shadow-xl uppercase tracking-widest mt-4">Confirm Wish</button>
-<button v-if="editingWish.id" @click="deleteWish(editingWish.id)" class="w-full text-rose-400 font-bold text-xs mt-2">Delete Wish</button>
-            </div>
-        </div>
-
-        <nav class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-50 flex justify-around py-4 pb-8 z-40">
-            <div v-for="t in tabs" :key="t.id" @click="activeTab = t.id" class="flex flex-col items-center space-y-1 transition-all" :class="{'nav-active scale-110': activeTab === t.id}">
-                <span class="text-xl">{{ t.icon }}</span>
-                <span class="text-[8px] font-black uppercase tracking-tighter">{{ t.label }}</span>
+            <div @click="activeTab = 'home'" class="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white cursor-pointer shadow-lg active:scale-90 transition-transform">
+                <i class="fas fa-bolt text-xs"></i>
             </div>
         </nav>
-    </div>
 
-    <script>
-const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
-createApp({
-    setup() {
-        const STORAGE_KEY = 'LifeOS_V15_Master';
-        
-        // --- 基础状态 ---
-        const activeTab = ref('home');
-        const tabs = [
-            {id:'home',icon:'💎',label:'看板'},{id:'todo',icon:'⚡',label:'任务'},{id:'skill',icon:'🧬',label:'技能'},
-            {id:'wish',icon:'🌈',label:'愿望'},{id:'wealth',icon:'💰',label:'资产'},{id:'history',icon:'📖',label:'复盘'}
-        ];
+        <main class="p-6">
+            <div v-if="activeTab === 'home'" class="space-y-6">
+                <div class="bg-slate-900 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden">
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-start mb-8">
+                            <span :class="statusColor" class="px-3 py-1 rounded-full text-[10px] font-black text-slate-900 uppercase tracking-wider">{{ user.status }}</span>
+                        </div>
+                        <div v-for="(attr, key) in displayAttributes" :key="key" class="mb-6 last:mb-0">
+                            <div class="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2 opacity-70">
+                                <span>{{ attr.name }}</span>
+                                <span>{{ attr.valDisplay }}</span>
+                            </div>
+                            <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div :class="attr.color" class="h-full transition-all duration-1000" :style="{ width: attr.percent + '%' }"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        const user = ref({ title: '觉醒者', wealth: 0, status: '正常' });
-        const attributes = ref({
-            int: { name: '智慧 INT', xp: 0, color: 'bg-indigo-400' },
-            str: { name: '力量 STR', xp: 0, color: 'bg-rose-400' },
-            san: { name: '心情 SAN', xp: 0, color: 'bg-amber-400' }
-        });
+            <div v-if="activeTab === 'skill'" class="space-y-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-black italic uppercase">Skills</h2>
+                    <button @click="addSkill" class="w-10 h-10 bg-fuchsia-100 text-fuchsia-600 rounded-full flex items-center justify-center active:scale-90 transition-transform">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div v-for="s in skills" :key="s.id" class="group bg-white border-2 border-slate-100 rounded-3xl p-5 hover:border-fuchsia-200 transition-all">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4" @click="selectedSkill = (selectedSkill === s.id ? null : s.id)">
+                            <div class="text-2xl">{{ s.icon || '💎' }}</div>
+                            <div>
+                                <h3 class="font-bold text-slate-800">{{ s.name }}</h3>
+                                <p class="text-[10px] font-bold text-slate-400">XP: {{ s.xp }} / COUNT: {{ s.count }}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button @click="editingSkill = s" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-fuchsia-50 hover:text-fuchsia-500">
+                                <i class="fas fa-sliders-h text-[10px]"></i>
+                            </button>
+                            <button @click="deleteSkill(s.id)" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-rose-50 hover:text-rose-500">
+                                <i class="fas fa-trash-alt text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        // --- 资产逻辑 ---
-        const wealthParts = ref({ ali: 0, bank: 0, cmb: 0, other: 0, wechat: 0 });
-        const wealthLabel = { ali: '支付宝理财', bank: '银行存款', cmb: '招商理财', other: '其他账户', wechat: '微信余额' };
-        const wealthHistory = ref([]);
-        const showWealthChart = ref(false);
-        const chartTimeRange = ref('week');
-        let wealthChart = null;
+            <div v-if="activeTab === 'wealth'" class="space-y-6">
+                <h2 class="text-xl font-black italic uppercase">System Backup</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <button @click="exportData" class="p-6 bg-slate-900 text-white rounded-[24px] text-center active:scale-95 transition-transform">
+                        <i class="fas fa-download mb-2 block text-xl text-fuchsia-400"></i>
+                        <span class="text-[10px] font-black uppercase tracking-widest">导出记忆</span>
+                    </button>
+                    <button @click="importData" class="p-6 bg-white border-2 border-slate-900 rounded-[24px] text-center active:scale-95 transition-transform">
+                        <i class="fas fa-upload mb-2 block text-xl text-slate-900"></i>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-900">注入记忆</span>
+                    </button>
+                </div>
+            </div>
+        </main>
 
-        // --- 技能逻辑 (已修复重复定义) ---
-        const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int', icon: '🧠', lastUsed: '', plusInt: 5, plusSan: 2, plusStr: 0, insights: [] }]);
-        const selectedSkill = ref(null); 
-        const editingSkill = ref(null); // 弹窗编辑对象
-
-        // --- 任务逻辑 ---
-        const todayTasks = ref([]);
-        const newTask = ref({ name: '', targetType: 'skill', skillId: 1, type: '主线' });
-
-        // --- 愿望 & 复盘逻辑 ---
-        const wishes = ref([]);
-        const wishTab = ref('active');
-        const editingWish = ref(null);
-        const history = ref({});
-        const tempNote = ref("");
-        const searchQuery = ref("");
-        const isHistoryOpen = ref(false);
-        const dailyStatus = ref('正常');
-        const viewYear = ref(new Date().getFullYear());
-        const viewMonth = ref(new Date().getMonth() + 1);
-
-        // --- 核心方法 (修复了数值加成逻辑) ---
-        const toggleTask = (i) => {
-            const t = todayTasks.value[i]; 
-            t.done = !t.done;
-            const gain = t.type === '主线' ? 50 : 20; 
-            const mult = t.done ? 1 : -1;
-
-            if(t.targetType === 'skill') {
-                const s = skills.value.find(sk => sk.id == t.skillId);
-                if(s) { 
-                    s.xp += (gain * mult); 
-                    if(t.done) { 
-                        s.count = (s.count || 0) + 1; 
-                        s.lastUsed = new Date().toLocaleDateString(); 
-                        // 注入自定义加成
-                        attributes.value.int.xp += (s.plusInt || 0);
-                        attributes.value.san.xp += (s.plusSan || 0);
-                        attributes.value.str.xp += (s.plusStr || 0);
-                        // 自动记录 Insight
-                        if(!s.insights) s.insights = [];
-                        s.insights.push({ time: new Date().toLocaleString(), content: t.name });
-                    } else {
-                        // 取消勾选，撤回加成
-                        attributes.value.int.xp -= (s.plusInt || 0);
-                        attributes.value.san.xp -= (s.plusSan || 0);
-                        attributes.value.str.xp -= (s.plusStr || 0);
-                    }
-                    attributes.value[s.bindAttr].xp += (gain * mult); 
-                }
-            } else { 
-                attributes.value[t.targetType].xp += (gain * mult); 
-            }
-        };
-
-        const exportData = () => {
-            const data = localStorage.getItem(STORAGE_KEY);
-            if(!data) return alert("无记忆可导出");
-            navigator.clipboard.writeText(data).then(() => alert("记忆已复制到剪贴板！")).catch(() => prompt("请手动复制：", data));
-        };
-
-        const importData = () => {
-            const json = prompt("请粘贴记忆代码：");
-            if (json) {
-                try {
-                    JSON.parse(json);
-                    localStorage.setItem(STORAGE_KEY, json);
-                    location.reload();
-                } catch (e) { alert("注入失败：格式错误"); }
-            }
-        };
-
-        // --- 计算属性 ---
-        const tempTotalWealth = computed(() => Object.values(wealthParts.value).reduce((s, n) => s + (parseFloat(n) || 0), 0));
-        const displayAttributes = computed(() => {
-            const res = {};
-            Object.keys(attributes.value).forEach(k => {
-                const xp = attributes.value[k].xp;
-                res[k] = { name: attributes.value[k].name, valDisplay: 'Lv.' + (Math.floor(xp / 1000) + 1), percent: (xp % 1000) / 10, color: attributes.value[k].color };
-            });
-            res['wealth'] = { name: '资产余额', valDisplay: '￥' + user.value.wealth.toLocaleString(), percent: 100, color: 'bg-fuchsia-400' };
-            return res;
-        });
-
-        const filteredHistory = computed(() => {
-            const result = {};
-            Object.keys(history.value)
-                .filter(key => history.value[key].type !== '签到' && (history.value[key].note.includes(searchQuery.value) || key.includes(searchQuery.value)))
-                .sort((a, b) => b.localeCompare(a))
-                .forEach(key => result[key] = history.value[key]);
-            return result;
-        });
-
-        // --- 数据监听 & 持久化 ---
-        onMounted(() => {
-            const s = localStorage.getItem(STORAGE_KEY);
-            if(s) {
-                const d = JSON.parse(s);
-                user.value = d.user || user.value;
-                attributes.value = d.attributes || attributes.value;
-                skills.value = d.skills || [];
-                wealthParts.value = d.wealthParts || wealthParts.value;
-                wealthHistory.value = d.wealthHistory || [];
-                todayTasks.value = d.todayTasks || [];
-                history.value = d.history || {};
-                wishes.value = d.wishes || [];
-            }
-        });
-
-        watch([user, attributes, skills, wealthHistory, wealthParts, todayTasks, wishes, history], () => {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                user: user.value, attributes: attributes.value, skills: skills.value,
-                wealthHistory: wealthHistory.value, wealthParts: wealthParts.value,
-                todayTasks: todayTasks.value, history: history.value, wishes: wishes.value
-            }));
-        }, { deep: true });
-
-        // --- 图表、签到等其他方法保留 ---
-        return {
-            activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, searchQuery, isHistoryOpen, dailyStatus, editingSkill,
-            displayAttributes, tempTotalWealth, filteredHistory,
-            addTask: () => { if(newTask.value.name) { todayTasks.value.push({...newTask.value, id: Date.now()}); newTask.value.name = ""; }},
-            toggleTask, addSkill: () => { const n = prompt("名称:"); if(n) skills.value.push({id:Date.now(), name:n, xp:0, count:0, plusInt:5, plusSan:2, plusStr:0, icon:'💎', insights:[]})},
-            deleteSkill: (id) => { if(confirm("抹除？")) skills.value = skills.value.filter(s=>s.id!==id)},
-            saveNote: () => { /* ... */ }, exportData, importData,
-            statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低能量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
-            confirmWealth: () => { user.value.wealth = tempTotalWealth.value; alert("存档成功"); },
-            // ...其他原有方法
-        };
-    }
-}).mount('#app')
-</script>
-    
-</div>
-</body>
-</html>
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 backdrop-blur-xl
