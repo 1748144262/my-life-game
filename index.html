@@ -1,162 +1,182 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>LifeOS Pro V15 | Fixed Edition</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LifeOS Pro V15</title>
 
-<script src="https://cdn.staticfile.org/vue/3.3.4/vue.global.prod.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Vue -->
+    <script src="https://cdn.staticfile.org/vue/3.3.4/vue.global.prod.js"></script>
 
-<style>
-[v-cloak]{display:none;}
-body{background:#fdf2f8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;padding-bottom:100px;color:#1e293b;}
-.card{background:white;border-radius:24px;border:1px solid #f1f5f9;box-shadow:0 4px 6px -1px rgba(0,0,0,0.02);}
-.chart-container{height:180px;width:100%;}
-</style>
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            background: #fdf2f8;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+        }
+
+        [v-cloak] { display: none; }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .chart-container {
+            height: 200px;
+        }
+    </style>
 </head>
 
 <body>
-<div id="app" v-cloak class="max-w-md mx-auto px-4 pt-6">
 
-<!-- WEALTH -->
-<section v-show="activeTab==='wealth'" class="space-y-4">
+<div id="app" v-cloak class="max-w-md mx-auto p-4">
 
-<div class="flex justify-between items-center">
-<h2 class="text-xl font-black">Wealth Log</h2>
-<button @click="showWealthChart=!showWealthChart">📈</button>
-</div>
+    <section class="space-y-4">
 
-<div v-if="showWealthChart" class="card p-4">
-<div class="chart-container">
-<canvas id="wealthLineChart"></canvas>
-</div>
+        <div class="flex justify-between items-center">
+            <h1 class="text-xl font-black">Wealth Log</h1>
+            <button @click="showChart = !showChart">📈</button>
+        </div>
 
-<div class="flex justify-around mt-4">
-<button @click="renderChart('total')">总资产</button>
-<button @click="renderChart('alipay')">支付宝</button>
-<button @click="renderChart('others')">银行</button>
-</div>
+        <div v-if="showChart" class="card p-4">
 
-<div class="flex justify-center space-x-4 mt-3 border-t pt-3">
+            <div class="chart-container">
+                <canvas id="chart"></canvas>
+            </div>
 
-<button 
-@click="chartTimeRange='week'; renderChart('total')"
-:class="chartTimeRange==='week'?'bg-black text-white':''">
-7天
-</button>
+            <div class="flex justify-around mt-4 text-sm">
 
-<button 
-@click="chartTimeRange='monthly'; renderChart('total')"
-:class="chartTimeRange==='monthly'?'bg-black text-white':''">
-每月1号
-</button>
+                <button @click="render('total')" class="px-3 py-1 bg-gray-100 rounded">
+                    总资产
+                </button>
 
-</div>
-</div>
+                <button @click="render('alipay')" class="px-3 py-1 bg-blue-100 rounded">
+                    支付宝
+                </button>
 
-</section>
+                <button @click="render('bank')" class="px-3 py-1 bg-green-100 rounded">
+                    银行
+                </button>
+
+            </div>
+
+            <div class="flex justify-center mt-3 space-x-4 text-xs border-t pt-3">
+
+                <button
+                    @click="timeRange='week'; render('total')"
+                    :class="timeRange==='week' ? 'bg-black text-white' : 'bg-gray-100'"
+                    class="px-2 py-1 rounded">
+                    7天
+                </button>
+
+                <button
+                    @click="timeRange='monthly'; render('total')"
+                    :class="timeRange==='monthly' ? 'bg-black text-white' : 'bg-gray-100'"
+                    class="px-2 py-1 rounded">
+                    每月1号
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
 
 </div>
 
 <script>
-const {createApp,ref,nextTick}=Vue;
+const { createApp, ref, nextTick } = Vue;
 
 createApp({
-setup(){
+setup() {
 
-const activeTab=ref('wealth');
-const showWealthChart=ref(true);
-const chartTimeRange=ref('week');
+const showChart = ref(true);
+const timeRange = ref('week');
 
-const wealthHistory=ref([
-{date:'2026/1/1',total:1000,parts:{ali:300,bank:700}},
-{date:'2026/2/1',total:1500,parts:{ali:500,bank:1000}},
-{date:'2026/3/1',total:1800,parts:{ali:600,bank:1200}},
-{date:'2026/4/1',total:2200,parts:{ali:800,bank:1400}},
+let chart = null;
+
+const wealthHistory = ref([
+{ date: '2026/1/1', total: 1000, parts: { ali: 300, bank: 700 } },
+{ date: '2026/2/1', total: 1500, parts: { ali: 500, bank: 1000 } },
+{ date: '2026/3/1', total: 1800, parts: { ali: 600, bank: 1200 } },
+{ date: '2026/4/1', total: 2200, parts: { ali: 800, bank: 1400 } },
 ]);
 
-let chart=null;
+const render = (type) => {
 
-const skills=ref([]);
-const selectedSkill=ref(null);
+nextTick(() => {
 
-const deleteSkill=(id)=>{
-skills.value=skills.value.filter(s=>s.id!==id);
+const ctx = document.getElementById('chart');
+if (!ctx) return;
+
+if (chart) chart.destroy();
+
+let data = [];
+
+if (timeRange.value === 'monthly') {
+    data = wealthHistory.value.filter(i => {
+        const d = new Date(i.date);
+        return d.getDate() === 1;
+    }).slice(-6);
+} else {
+    data = wealthHistory.value.slice(-7);
+}
+
+const labels = data.map(i => {
+    const d = new Date(i.date);
+    return timeRange.value === 'monthly'
+        ? (d.getMonth() + 1) + '月'
+        : d.getDate() + '日';
+});
+
+let values = [];
+
+if (type === 'total') {
+    values = data.map(i => i.total);
+} else if (type === 'alipay') {
+    values = data.map(i => i.parts.ali || 0);
+} else {
+    values = data.map(i => i.parts.bank || 0);
+}
+
+chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels,
+        datasets: [{
+            data: values,
+            borderColor: '#d946ef',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { display: false },
+            x: { grid: { display: false } }
+        }
+    }
+});
+
+});
+
 };
 
-const renderChart=(type)=>{
-nextTick(()=>{
-
-const ctx=document.getElementById('wealthLineChart');
-if(!ctx)return;
-
-if(chart)chart.destroy();
-
-let data=[];
-
-if(chartTimeRange.value==='monthly'){
-data=wealthHistory.value.filter(i=>{
-const d=new Date(i.date);
-return d.getDate()===1;
-}).slice(-6);
-}else{
-data=wealthHistory.value.slice(-7);
-}
-
-const labels=data.map(i=>{
-const d=new Date(i.date);
-return chartTimeRange.value==='monthly'
-? (d.getMonth()+1)+'月'
-: d.getDate()+'日';
-});
-
-let chartData=[];
-
-if(type==='total'){
-chartData=data.map(i=>i.total);
-}else if(type==='alipay'){
-chartData=data.map(i=>i.parts?.ali||0);
-}else{
-chartData=data.map(i=>i.parts?.bank||0);
-}
-
-chart=new Chart(ctx,{
-type:'line',
-data:{
-labels,
-datasets:[{
-data:chartData,
-borderColor:'#d946ef',
-fill:true,
-tension:0.4,
-pointRadius:3
-}]
-},
-options:{
-responsive:true,
-maintainAspectRatio:false,
-plugins:{legend:{display:false}},
-scales:{
-y:{display:false},
-x:{grid:{display:false}}
-}
-}
-});
-
-});
-};
-
-return{
-activeTab,
-showWealthChart,
-chartTimeRange,
-renderChart,
-wealthHistory,
-skills,
-selectedSkill,
-deleteSkill
+return {
+showChart,
+timeRange,
+render
 };
 
 }
