@@ -523,18 +523,14 @@
 
                         let filteredData = [];
                         
-                        if (chartTimeRange.value === 'monthly') {
-                            // --- 逻辑 A：只提取每月 1 号的数据 ---
-                            // 遍历历史，只保留日期结尾是 "/1" 的记录
-                            filteredData = wealthHistory.value.filter(item => {
-                                const parts = item.date.split('/');
-                                return parts[2] === "1"; 
-                            }).slice(-6); // 只取最近 6 个月
-                        } else {
-                            // --- 逻辑 B：默认取最近 7 次记录 ---
-                            filteredData = wealthHistory.value.slice(-7);
-                        }
-
+                       if (chartTimeRange.value === 'monthly') {
+    filteredData = wealthHistory.value.filter(item => {
+        const d = new Date(item.date);
+        return d.getDate() === 1; // 每月1号
+    }).slice(-6);
+} else {
+    filteredData = wealthHistory.value.slice(-7);
+}
                         // 坐标轴标签：月视图显示“X月”，周视图显示“X日”
                         const labels = filteredData.map(l => {
                             const p = l.date.split('/');
