@@ -324,309 +324,185 @@
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
-        createApp({
-            setup() {
-                const activeTab = ref('home');
-                const tabs = [
-                    {id:'home',icon:'💎',label:'看板'},{id:'todo',icon:'⚡',label:'任务'},{id:'skill',icon:'🧬',label:'技能'},
-                    {id:'wish',icon:'🌈',label:'愿望'},{id:'wealth',icon:'💰',label:'资产'},{id:'history',icon:'📖',label:'复盘'}
-                ];
+    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+    createApp({
+        setup() {
+            const activeTab = ref('home');
+            const tabs = [
+                {id:'home',icon:'💎',label:'看板'},{id:'todo',icon:'⚡',label:'任务'},{id:'skill',icon:'🧬',label:'技能'},
+                {id:'wish',icon:'🌈',label:'愿望'},{id:'wealth',icon:'💰',label:'资产'},{id:'history',icon:'📖',label:'复盘'}
+            ];
 
-                const user = ref({ title: '觉醒者', wealth: 0, status: '正常' });
-                const attributes = ref({
-                    int: { name: '智慧 INT', xp: 0, color: 'bg-indigo-400' },
-                    str: { name: '力量 STR', xp: 0, color: 'bg-rose-400' },
-                    san: { name: '心情 SAN', xp: 0, color: 'bg-amber-400' }
-                });
+            const user = ref({ title: '觉醒者', wealth: 0, status: '正常' });
+            const attributes = ref({
+                int: { name: '智慧 INT', xp: 0, color: 'bg-indigo-400' },
+                str: { name: '力量 STR', xp: 0, color: 'bg-rose-400' },
+                san: { name: '心情 SAN', xp: 0, color: 'bg-amber-400' }
+            });
 
-                // 资产逻辑
-                const wealthParts = ref({ ali: 0, bank: 0, cmb: 0, other: 0, wechat: 0 });
-                const wealthLabel = { ali: '支付宝理财', bank: '银行存款', cmb: '招商理财', other: '其他账户', wechat: '微信余额' };
-                const wealthHistory = ref([]);
-                const showWealthChart = ref(false);
-                const chartTimeRange = ref('week'); // 默认显示一周
-                let wealthChart = null;
+            // --- 资产逻辑 (核心修改区) ---
+            const wealthParts = ref({
+                "支付宝理财": 0, "银行存款": 0, "招商理财": 0, "其他理财": 0, "微信余额": 0
+            });
+            const wealthHistory = ref([]); // 存储历史数据
+            const showWealthChart = ref(false);
+            const chartTimeRange = ref("7days");
+            const filterStartDate = ref("");
+            const filterEndDate = ref("");
+            let wealthChart = null;
 
-                // 技能逻辑
-                const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int', icon: '🧠', lastUsed: '' }]);
-                const selectedSkill = ref(null);
-                const showSkillChartModal = ref(false);
+            // 实时合计计算
+            const tempTotalWealth = computed(() => {
+                return Object.values(wealthParts.value).reduce((a, b) => a + (Number(b) || 0), 0);
+            });
 
-                // 任务逻辑
-                const todayTasks = ref([]);
-                const newTask = ref({ name: '', targetType: 'skill', skillId: 1, type: '主线' });
+            // 一键确认保存
+            const confirmWealth = () => {
+                const today = new Date().toLocaleDateString();
+                const total = tempTotalWealth.value;
+                user.value.wealth = total; // 更新看板显示的余额
 
-                // 愿望逻辑
-                const wishes = ref([]);
-                const wishTab = ref('active');
-                const editingWish = ref(null);
-
-                // 复盘逻辑
-                const history = ref({});
-                const tempNote = ref("");
-                const searchQuery = ref(""); // 搜索关键词
-                const isHistoryOpen = ref(false); // 历史书折叠状态
-                const dailyStatus = ref('正常'); // 复盘选择的状态
-                const now = new Date();
-                const viewYear = ref(now.getFullYear());
-                const viewMonth = ref(now.getMonth() + 1);
-
-                // 计算属性
-                const tempTotalWealth = computed(() => Object.values(wealthParts.value).reduce((s, n) => s + (parseFloat(n) || 0), 0));
-                const tasksDoneToday = computed(() => todayTasks.value.filter(t => t.done).length);
-                const activeWishes = computed(() => wishes.value.filter(w => !w.done));
-                const doneWishes = computed(() => wishes.value.filter(w => w.done));
-
-                const displayAttributes = computed(() => {
-                    const res = {};
-                    Object.keys(attributes.value).forEach(k => {
-                        const xp = attributes.value[k].xp;
-                        res[k] = { name: attributes.value[k].name, valDisplay: 'Lv.' + (Math.floor(xp / 1000) + 1), percent: (xp % 1000) / 10, color: attributes.value[k].color };
-                    });
-                    res['wealth'] = { name: '资产余额', valDisplay: '￥' + user.value.wealth.toLocaleString(), percent: 100, color: 'bg-fuchsia-400' };
-                    return res;
-                });
-
-                const sortedHistory = computed(() => {
-                    const sorted = {};
-                    Object.keys(history.value).sort((a,b) => b.localeCompare(a)).forEach(key => sorted[key] = history.value[key]);
-                    return sorted;
-                });
-
-                const daysInViewMonth = computed(() => new Date(viewYear.value, viewMonth.value, 0).getDate());
-                const firstDayOffset = computed(() => { 
-                    let first = new Date(viewYear.value, viewMonth.value - 1, 1).getDay(); 
-                    return first === 0 ? 6 : first - 1; 
-                });
-
-                const weeklySignStatus = computed(() => {
-                    const statuses = []; const today = new Date();
-                    for(let i=0; i<7; i++) {
-                        const d = new Date(today); d.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1) + i);
-                        const k = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-                        statuses.push(!!history.value[k]?.signed);
-                    }
-                    return statuses;
-                });
-
-                // 方法
-                const addTask = () => { if(newTask.value.name) { todayTasks.value.push({ ...newTask.value, id: Date.now(), done: false }); newTask.value.name = ""; } };
+                // 检查今天是否存过，有则覆盖，无则新增
+                const index = wealthHistory.value.findIndex(h => h.date === today);
+                const record = { date: today, total: total, parts: { ...wealthParts.value } };
                 
-                const toggleTask = (i) => {
-                    const t = todayTasks.value[i]; t.done = !t.done;
-                    const gain = t.type === '主线' ? 50 : 20; const mult = t.done ? 1 : -1;
-                    if(t.targetType === 'skill') {
-                        const s = skills.value.find(sk => sk.id == t.skillId);
-                        if(s) { 
-                            s.xp += (gain * mult); 
-                            if(t.done) { s.count = (s.count || 0) + 1; s.lastUsed = new Date().toLocaleDateString(); }
-                            attributes.value[s.bindAttr].xp += (gain * mult); 
-                        }
-                    } else { attributes.value[t.targetType].xp += (gain * mult); }
-                };
+                if(index > -1) wealthHistory.value[index] = record;
+                else wealthHistory.value.push(record);
+                
+                alert(`¥${total.toLocaleString()} 已存入历史！`);
+                if(showWealthChart.value) renderChart(chartTimeRange.value);
+                saveAllData(); // 自动保存到本地
+            };
 
-                const confirmWealth = () => {
-                    const lastTotal = user.value.wealth;
-                    user.value.wealth = tempTotalWealth.value;
-                    wealthHistory.value.push({
-                        date: new Date().toLocaleDateString(),
-                        total: user.value.wealth,
-                        change: user.value.wealth - lastTotal,
-                        parts: { ...wealthParts.value }
-                    });
-                    alert("存档成功！");
-                    if(showWealthChart.value) renderChart('total');
-                };
+            // 跨日期对比与趋势渲染
+            const renderChart = (mode) => {
+                chartTimeRange.value = mode;
+                nextTick(() => {
+                    const canvas = document.getElementById('wealthLineChart');
+                    if(!canvas) return;
+                    const ctx = canvas.getContext('2d');
+                    if(wealthChart) wealthChart.destroy();
 
-                const renderChart = (type) => {
-                    nextTick(() => {
-                        const canvas = document.getElementById('wealthLineChart');
-                        if(!canvas) return;
-                        const ctx = canvas.getContext('2d');
-                        if(wealthChart) wealthChart.destroy();
-
-                        let filteredData = [];
-                        
-                        if (chartTimeRange.value === 'monthly') {
-                            // --- 逻辑 A：只提取每月 1 号的数据 ---
-                            // 遍历历史，只保留日期结尾是 "/1" 的记录
-                            filteredData = wealthHistory.value.filter(item => {
-                                const parts = item.date.split('/');
-                                return parts[2] === "1"; 
-                            }).slice(-6); // 只取最近 6 个月
-                        } else {
-                            // --- 逻辑 B：默认取最近 7 次记录 ---
-                            filteredData = wealthHistory.value.slice(-7);
-                        }
-
-                        // 坐标轴标签：月视图显示“X月”，周视图显示“X日”
-                        const labels = filteredData.map(l => {
-                            const p = l.date.split('/');
-                            return chartTimeRange.value === 'monthly' ? `${p[1]}月` : `${p[2]}日`;
+                    let filtered = [];
+                    if (mode === '7days') {
+                        filtered = wealthHistory.value.slice(-7);
+                    } else if (mode === 'monthly') {
+                        filtered = wealthHistory.value.filter(l => l.date.endsWith('/1') || l.date.endsWith('-01'));
+                    } else if (mode === 'custom') {
+                        if(!filterStartDate.value || !filterEndDate.value) return alert("请选择完整日期范围");
+                        const start = new Date(filterStartDate.value).getTime();
+                        const end = new Date(filterEndDate.value).getTime();
+                        filtered = wealthHistory.value.filter(l => {
+                            const d = new Date(l.date).getTime();
+                            return d >= start && d <= end;
                         });
+                    } else {
+                        filtered = wealthHistory.value.slice(-7);
+                    }
 
-                        // --- 关键修改：匹配你的输入框字段 ---
-                        let chartData = [];
-                        if (type === 'total') {
-                            chartData = filteredData.map(l => l.total);
-                        } else if (type === 'alipay') {
-                            // 对应你 wealthParts 里的“支付宝理财”
-                            chartData = filteredData.map(l => l.parts['支付宝理财'] || 0);
-                        } else if (type === 'others') {
-                            // 对应你 wealthParts 里的“银行存款”
-                            chartData = filteredData.map(l => l.parts['银行存款'] || 0);
+                    wealthChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: filtered.map(l => l.date.split('/').slice(1).join('/')), 
+                            datasets: [{ 
+                                data: filtered.map(l => l.total), 
+                                borderColor: '#d946ef', 
+                                tension: 0.4, 
+                                fill: true,
+                                backgroundColor: 'rgba(217, 70, 239, 0.05)' 
+                            }]
+                        },
+                        options: { 
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { display: false }, x: { grid: { display: false }, ticks: { font: { size: 8 } } } }
                         }
-
-                        wealthChart = new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: labels,
-                                datasets: [{ 
-                                    label: '金额', 
-                                    data: chartData, 
-                                    borderColor: type === 'alipay' ? '#3b82f6' : (type === 'others' ? '#10b981' : '#d946ef'), 
-                                    backgroundColor: 'rgba(217, 70, 239, 0.05)', 
-                                    fill: true, 
-                                    tension: 0.4, 
-                                    pointRadius: 4 
-                                }]
-                            },
-                            options: { 
-                                responsive: true, 
-                                maintainAspectRatio: false, 
-                                plugins: { legend: { display: false } }, 
-                                scales: { 
-                                    y: { display: false }, 
-                                    x: { grid: { display: false }, ticks: { font: { size: 8 } } } 
-                                } 
-                            }
-                        });
                     });
-                };
-
-                const addWish = () => { editingWish.value = { title: '', price: 0, sanExp: 100, colorClass: 'color-purple', done: false }; };
-                const editWish = (w) => { editingWish.value = { ...w }; };
-                const saveWish = () => {
-                    if(!editingWish.value.id) { editingWish.value.id = Date.now(); wishes.value.push(editingWish.value); }
-                    else { const idx = wishes.value.findIndex(w => w.id === editingWish.value.id); wishes.value[idx] = editingWish.value; }
-                    editingWish.value = null;
-                };
-                const toggleWish = (w) => {
-                    w.done = !w.done;
-                    if(w.done) {
-                        w.doneDate = new Date().toLocaleDateString();
-                        attributes.value.san.xp += (w.sanExp || 100);
-                        history.value[`${new Date().toLocaleString()} (成就)`] = { note: `达成愿望: ${w.title}`, type: '愿望实现', signed: true };
-                    }
-                };
-                const deleteWish = (id) => { wishes.value = wishes.value.filter(w => w.id !== id); editingWish.value = null; };
-
-                const signDay = (d) => {
-                    const k = `${viewYear.value}-${viewMonth.value}-${d}`;
-                    if(!history.value[k]) history.value[k] = { signed: true, note: '打卡', type: '签到' };
-                    else history.value[k].signed = !history.value[k].signed;
-                };
-                const saveNote = () => {
-                    if(!tempNote.value.trim()) return alert("写点什么吧~");
-                    const key = `${new Date().toLocaleString()}`;
-                    // 保存时加入了 status 状态
-                    history.value[key] = { 
-                        note: tempNote.value, 
-                        type: '复盘', 
-                        signed: true, 
-                        status: dailyStatus.value 
-                    };
-                    // 同时更新看板的大气层状态
-                    user.value.status = dailyStatus.value;
-                    tempNote.value = ""; 
-                    alert("已记入历史书！");
-                };
-                const deleteHistory = (key) => {
-                    if(confirm("确定要抹除这段记忆吗？")) {
-                        delete history.value[key];
-                    }
-                };
-
-                const filteredHistory = computed(() => {
-                    const result = {};
-                    // 排除掉只有“签到”类型的记录，并进行关键词过滤
-                    Object.keys(history.value)
-                        .filter(key => {
-                            const item = history.value[key];
-                            const isNotSignOnly = item.type !== '签到';
-                            const matchesSearch = item.note.includes(searchQuery.value) || key.includes(searchQuery.value);
-                            return isNotSignOnly && matchesSearch;
-                        })
-                        .sort((a, b) => b.localeCompare(a))
-                        .forEach(key => result[key] = history.value[key]);
-                    return result;
                 });
-                const addSkill = () => { const n = prompt("新技能名称:"); if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int', icon: '💎', lastUsed: '' }); };
-// 记忆导出功能
-const exportData = () => {
-    const data = localStorage.getItem('LifeOS_V15_Master');
-    if(!data) return alert("当前还没有记忆可以导出哦！");
-    // 弹出一个窗口，方便你直接长按全选复制
-    const textArea = document.createElement("textarea");
-    textArea.value = data;
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-        document.execCommand('copy');
-        alert("记忆已自动复制到剪贴板！请去微信或备忘录粘贴保存。");
-    } catch (err) {
-        prompt("请全选复制下方的代码并保存：", data);
-    }
-    document.body.removeChild(textArea);
-};
+            };
 
-// 记忆注入功能
-const importData = () => {
-    const json = prompt("请在这里粘贴你之前保存的记忆代码：");
-    if (json && json.trim() !== "") {
-        try {
-            JSON.parse(json); // 检查格式对不对
-            localStorage.setItem('LifeOS_V15_Master', json);
-            alert("同步成功！即将重启人生...");
-            location.reload(); 
-        } catch (e) {
-            alert("注入失败：代码格式不对，请确保复制了完整的记忆代码。");
+            // --- 技能与任务逻辑 ---
+            const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int', icon: '🧠', lastUsed: '' }]);
+            const selectedSkill = ref(null);
+            const todayTasks = ref([]);
+            const newTask = ref({ name: '', targetType: 'skill', skillId: 1, type: '主线' });
+
+            const addTask = () => { if(newTask.value.name) { todayTasks.value.push({ ...newTask.value, id: Date.now(), done: false }); newTask.value.name = ""; } };
+            const toggleTask = (i) => {
+                const t = todayTasks.value[i]; t.done = !t.done;
+                const gain = t.type === '主线' ? 50 : 20; const mult = t.done ? 1 : -1;
+                if(t.targetType === 'skill') {
+                    const s = skills.value.find(sk => sk.id == t.skillId);
+                    if(s) { s.xp += (gain * mult); if(t.done){s.count++; s.lastUsed=new Date().toLocaleDateString();} attributes.value[s.bindAttr].xp += (gain * mult); }
+                } else { attributes.value[t.targetType].xp += (gain * mult); }
+                saveAllData();
+            };
+
+            // --- 其他 UI 逻辑 (愿望、复盘等) ---
+            const wishes = ref([]);
+            const wishTab = ref('active');
+            const editingWish = ref(null);
+            const history = ref({});
+            const tempNote = ref("");
+            const isHistoryOpen = ref(false);
+            const dailyStatus = ref('正常');
+            const now = new Date();
+            const viewYear = ref(now.getFullYear());
+            const viewMonth = ref(now.getMonth() + 1);
+
+            const activeWishes = computed(() => wishes.value.filter(w => !w.done));
+            const doneWishes = computed(() => wishes.value.filter(w => w.done));
+            const tasksDoneToday = computed(() => todayTasks.value.filter(t => t.done).length);
+            const daysInViewMonth = computed(() => new Date(viewYear.value, viewMonth.value, 0).getDate());
+            const firstDayOffset = computed(() => { 
+                let first = new Date(viewYear.value, viewMonth.value - 1, 1).getDay(); 
+                return first === 0 ? 6 : first - 1; 
+            });
+
+            const displayAttributes = computed(() => {
+                const res = {};
+                Object.keys(attributes.value).forEach(k => {
+                    const xp = attributes.value[k].xp;
+                    res[k] = { name: attributes.value[k].name, valDisplay: 'Lv.' + (Math.floor(xp / 1000) + 1), percent: (xp % 1000) / 10, color: attributes.value[k].color };
+                });
+                res['wealth'] = { name: '资产余额', valDisplay: '￥' + user.value.wealth.toLocaleString(), percent: 100, color: 'bg-fuchsia-400' };
+                return res;
+            });
+
+            // 数据持久化
+            const saveAllData = () => {
+                const data = {
+                    user: user.value, attributes: attributes.value, skills: skills.value,
+                    wishes: wishes.value, history: history.value, wealthHistory: wealthHistory.value,
+                    wealthParts: wealthParts.value
+                };
+                localStorage.setItem('lifeOS_data', JSON.stringify(data));
+            };
+
+            onMounted(() => {
+                const saved = localStorage.getItem('lifeOS_data');
+                if(saved) {
+                    const d = JSON.parse(saved);
+                    user.value = d.user || user.value;
+                    attributes.value = d.attributes || attributes.value;
+                    skills.value = d.skills || skills.value;
+                    wishes.value = d.wishes || wishes.value;
+                    history.value = d.history || history.value;
+                    wealthHistory.value = d.wealthHistory || [];
+                    wealthParts.value = d.wealthParts || wealthParts.value;
+                }
+            });
+
+            return {
+                activeTab, tabs, user, attributes, wealthParts, tempTotalWealth,
+                skills, selectedSkill, todayTasks, newTask, wishes, wishTab, editingWish,
+                history, tempNote, isHistoryOpen, dailyStatus, viewYear, viewMonth,
+                displayAttributes, activeWishes, doneWishes, tasksDoneToday,
+                daysInViewMonth, firstDayOffset, showWealthChart, chartTimeRange,
+                filterStartDate, filterEndDate, addTask, toggleTask, confirmWealth, renderChart
+            };
         }
-    }
-};
-                // 数据持久化
-                onMounted(() => {
-                    const s = localStorage.getItem('LifeOS_V15_Master');
-                    if(s) {
-                        const d = JSON.parse(s);
-                        user.value = d.user; attributes.value = d.attributes; skills.value = d.skills || [];
-                        wealthParts.value = d.wealthParts || wealthParts.value;
-                        wealthHistory.value = d.wealthHistory || [];
-                        todayTasks.value = d.todayTasks || [];
-                        history.value = d.history || {}; wishes.value = d.wishes || [];
-                    }
-                });
-
-                watch([user, attributes, skills, wealthHistory, wealthParts, todayTasks, wishes, history], () => {
-                    localStorage.setItem('LifeOS_V15_Master', JSON.stringify({
-                        user: user.value, attributes: attributes.value, skills: skills.value,
-                        wealthHistory: wealthHistory.value, wealthParts: wealthParts.value,
-                        todayTasks: todayTasks.value, history: history.value, wishes: wishes.value
-                    }));
-                }, { deep: true });
-
-                watch(showWealthChart, (val) => { if(val) renderChart('total'); });
-
-                return {
-                    chartTimeRange, renderChart, activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
-                    displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
-                    statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低能量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
-                    addTask, toggleTask, confirmWealth, renderChart, chartTimeRange, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
-    searchQuery, isHistoryOpen, dailyStatus, filteredHistory, deleteHistory
-};
-            }
-        }).mount('#app')
-    </script>
+    }).mount('#app');
+</script>
 </body>
 </html>
