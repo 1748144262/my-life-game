@@ -159,9 +159,9 @@
             <div v-if="showWealthChart" class="card p-4 animate-in zoom-in border-none shadow-xl">
                 <div class="chart-container"><canvas id="wealthLineChart"></canvas></div>
                 <div class="flex justify-around mt-4">
-                    <button @click="renderChart('total')" class="text-[9px] font-bold px-3 py-1 bg-slate-100 rounded-lg">总额</button>
-                    <button @click="renderChart('ali')" class="text-[9px] font-bold px-3 py-1 bg-blue-50 text-blue-500 rounded-lg">支付宝</button>
-                    <button @click="renderChart('wechat')" class="text-[9px] font-bold px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg">微信</button>
+                    <button @click="renderChart('total')" class="text-[9px] font-bold px-3 py-1 bg-slate-100 rounded-lg">总资产</button>
+<button @click="renderChart('alipay')" class="text-[9px] font-bold px-3 py-1 bg-blue-50 text-blue-500 rounded-lg">支付宝</button>
+<button @click="renderChart('others')" class="text-[9px] font-bold px-3 py-1 bg-slate-800 text-white rounded-lg">其他账户</button>
                 </div>
                 <div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
     <button @click="chartTimeRange = 'week'; renderChart('total')" 
@@ -439,30 +439,53 @@
                         const ctx = canvas.getContext('2d');
                         if(wealthChart) wealthChart.destroy();
 
-                        // 决定显示多少天的数据
-                        const limit = chartTimeRange.value === 'week' ? 7 : 30;
-                        const filteredData = wealthHistory.value.slice(-limit);
+                        let filteredData = [];
+                        
+                        if (chartTimeRange.value === 'monthly') {
+                            // --- 逻辑 A：提取每个月的最后一条记录 ---
+                            const monthMap = {};
+                            wealthHistory.value.forEach(item => {
+                                const [y, m, d] = item.date.split('/');
+                                const monthKey = `${y}-${m}`;
+                                // 总是覆盖，这样最后存进来的就是该月最后一天
+                                monthMap[monthKey] = item;
+                            });
+                            // 取最近6个月
+                            filteredData = Object.values(monthMap).slice(-6);
+                        } else {
+                            // --- 逻辑 B：默认取最近 7 次记录 ---
+                            filteredData = wealthHistory.value.slice(-7);
+                        }
 
-                        // 坐标轴显示：周视图显示“日”，月视图显示“月/日”
+                        // 坐标轴标签
                         const labels = filteredData.map(l => {
-                            const parts = l.date.split('/');
-                            return chartTimeRange.value === 'week' ? (parts[2] || parts[1]) + '日' : parts[1] + '/' + parts[2];
+                            const p = l.date.split('/');
+                            return chartTimeRange.value === 'monthly' ? `${p[1]}月` : `${p[2]}日`;
                         });
 
-                        let data = type === 'total' ? filteredData.map(l => l.total) : filteredData.map(l => l.parts[type] || 0);
+                        // 数据处理
+                        let chartData = [];
+                        if (type === 'total') {
+                            chartData = filteredData.map(l => l.total);
+                        } else if (type === 'alipay') {
+                            chartData = filteredData.map(l => l.parts['alipay'] || 0);
+                        } else if (type === 'others') {
+                            // 计算“其他”：总资产 减去 支付宝
+                            chartData = filteredData.map(l => l.total - (l.parts['alipay'] || 0));
+                        }
 
                         wealthChart = new Chart(ctx, {
                             type: 'line',
                             data: {
                                 labels: labels,
                                 datasets: [{ 
-                                    label: '趋势', 
-                                    data: data, 
-                                    borderColor: '#d946ef', 
-                                    backgroundColor: 'rgba(217, 70, 239, 0.1)', 
+                                    label: '金额', 
+                                    data: chartData, 
+                                    borderColor: type === 'alipay' ? '#3b82f6' : '#d946ef', 
+                                    backgroundColor: 'rgba(217, 70, 239, 0.05)', 
                                     fill: true, 
                                     tension: 0.4, 
-                                    pointRadius: filteredData.length > 10 ? 2 : 4 
+                                    pointRadius: 4 
                                 }]
                             },
                             options: { 
@@ -471,10 +494,7 @@
                                 plugins: { legend: { display: false } }, 
                                 scales: { 
                                     y: { display: false }, 
-                                    x: { 
-                                        grid: { display: false },
-                                        ticks: { font: { size: 8 }, maxRotation: 0 }
-                                    } 
+                                    x: { grid: { display: false }, ticks: { font: { size: 8 } } } 
                                 } 
                             }
                         });
@@ -595,7 +615,7 @@ const importData = () => {
                 watch(showWealthChart, (val) => { if(val) renderChart('total'); });
 
                 return {
-                    activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
+                    chartTimeRange, renderChart, activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
                     displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
                     statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低电量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
                     addTask, toggleTask, confirmWealth, renderChart, chartTimeRange, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
