@@ -211,7 +211,34 @@
                 </div>
             </div>
         </section>
+<div v-if="editingSkill" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+    <div class="bg-white rounded-[32px] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+        <h3 class="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-widest">Skill Tuning</h3>
+        
+        <div class="space-y-5">
+            <div>
+                <label class="text-[9px] font-black text-slate-400 uppercase">技能名称</label>
+                <input v-model="editingSkill.name" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-bold border-none outline-none focus:ring-2 ring-fuchsia-100">
+            </div>
+            
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label class="text-[9px] font-black text-slate-400 uppercase text-center block">智慧 INT</label>
+                    <input v-model.number="editingSkill.plusInt" type="number" class="w-full p-3 bg-slate-50 rounded-xl text-xs text-center font-mono">
+                </div>
+                <div>
+                    <label class="text-[9px] font-black text-slate-400 uppercase text-center block">心情 SAN</label>
+                    <input v-model.number="editingSkill.plusSan" type="number" class="w-full p-3 bg-slate-50 rounded-xl text-xs text-center font-mono">
+                </div>
+                <div>
+                    <label class="text-[9px] font-black text-slate-400 uppercase text-center block">力量 STR</label>
+                    <input v-model.number="editingSkill.plusStr" type="number" class="w-full p-3 bg-slate-50 rounded-xl text-xs text-center font-mono">
+                </div>
+            </div>
+        </div>
 
+        <button @click="editingSkill = null" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xs shadow-xl uppercase tracking-widest mt-8">Save Changes</button>
+    </div>
         <section v-show="activeTab === 'history'" class="space-y-4 animate-in slide-in-from-right">
             <h2 class="text-xl font-black italic text-slate-700">CHRONICLE</h2>
             
@@ -507,34 +534,7 @@ createApp({
     }
 }).mount('#app')
 </script>
-    <div v-if="editingSkill" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-    <div class="bg-white rounded-[32px] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95 duration-300">
-        <h3 class="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-widest">Skill Tuning</h3>
-        
-        <div class="space-y-5">
-            <div>
-                <label class="text-[9px] font-black text-slate-400 uppercase">技能名称</label>
-                <input v-model="editingSkill.name" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-bold border-none outline-none focus:ring-2 ring-fuchsia-100">
-            </div>
-            
-            <div class="grid grid-cols-3 gap-3">
-                <div>
-                    <label class="text-[9px] font-black text-slate-400 uppercase text-center block">智慧 INT</label>
-                    <input v-model.number="editingSkill.plusInt" type="number" class="w-full p-3 bg-slate-50 rounded-xl text-xs text-center font-mono">
-                </div>
-                <div>
-                    <label class="text-[9px] font-black text-slate-400 uppercase text-center block">心情 SAN</label>
-                    <input v-model.number="editingSkill.plusSan" type="number" class="w-full p-3 bg-slate-50 rounded-xl text-xs text-center font-mono">
-                </div>
-                <div>
-                    <label class="text-[9px] font-black text-slate-400 uppercase text-center block">力量 STR</label>
-                    <input v-model.number="editingSkill.plusStr" type="number" class="w-full p-3 bg-slate-50 rounded-xl text-xs text-center font-mono">
-                </div>
-            </div>
-        </div>
-
-        <button @click="editingSkill = null" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xs shadow-xl uppercase tracking-widest mt-8">Save Changes</button>
-    </div>
+    
 </div>
 </body>
 </html>
