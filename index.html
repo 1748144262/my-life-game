@@ -331,13 +331,14 @@
     const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
     createApp({
         setup() {
-            // --- 基础状态 ---
+            // --- 基础导航 ---
             const activeTab = ref('home');
             const tabs = [
                 {id:'home',icon:'💎',label:'看板'},{id:'todo',icon:'⚡',label:'任务'},{id:'skill',icon:'🧬',label:'技能'},
                 {id:'wish',icon:'🌈',label:'愿望'},{id:'wealth',icon:'💰',label:'资产'},{id:'history',icon:'📖',label:'复盘'}
             ];
 
+            // --- 用户属性 ---
             const user = ref({ title: '觉醒者', wealth: 0, status: '正常' });
             const attributes = ref({
                 int: { name: '智慧 INT', xp: 0, color: 'bg-indigo-400' },
@@ -345,7 +346,23 @@
                 san: { name: '心情 SAN', xp: 0, color: 'bg-amber-400' }
             });
 
-            // --- 资产逻辑 ---
+            // --- 技能逻辑 (核心修复：加成数值与 Insight) ---
+            const skills = ref([
+                { id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int', icon: '🧠', lastUsed: '', plusInt: 5, plusSan: 2, plusStr: 0, insights: [] }
+            ]);
+            const selectedSkill = ref(null); // 用于页面上点击展开 Insight 列表
+            const editingSkill = ref(null);  // 用于触发 Tuning 弹窗修改加成
+
+            // --- 任务逻辑 (核心修复：任务关联技能) ---
+            const todayTasks = ref([]);
+            const newTask = ref({ name: '', targetType: 'skill', skillId: 1, type: '主线' });
+
+            // --- 愿望逻辑 (核心修复：备注输入) ---
+            const wishes = ref([]);
+            const wishTab = ref('active');
+            const editingWish = ref(null); 
+
+            // --- 资产与复盘 ---
             const wealthParts = ref({ ali: 0, bank: 0, cmb: 0, other: 0, wechat: 0 });
             const wealthLabel = { ali: '支付宝理财', bank: '银行存款', cmb: '招商理财', other: '其他账户', wechat: '微信余额' };
             const wealthHistory = ref([]);
@@ -353,36 +370,14 @@
             const chartTimeRange = ref('week');
             let wealthChart = null;
 
-            // --- 技能逻辑 ---
-            const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int', icon: '🧠', lastUsed: '', plusInt: 5, plusSan: 2, plusStr: 0, insights: [] }]);
-            const selectedSkill = ref(null);
-            const editingSkill = ref(null); // 用于触发 Tuning 弹窗
-
-            // --- 任务逻辑 ---
-            const todayTasks = ref([]);
-            const newTask = ref({ name: '', targetType: 'skill', skillId: 1, type: '主线' });
-
-            // --- 愿望逻辑 ---
-            const wishes = ref([]);
-            const wishTab = ref('active');
-            const editingWish = ref(null);
-
-            // --- 复盘逻辑 ---
             const history = ref({});
             const tempNote = ref("");
-            const searchQuery = ref(""); 
-            const isHistoryOpen = ref(false); 
-            const dailyStatus = ref('正常'); 
-            const now = new Date();
-            const viewYear = ref(now.getFullYear());
-            const viewMonth = ref(now.getMonth() + 1);
+            const searchQuery = ref("");
+            const dailyStatus = ref('正常');
+            const viewYear = ref(new Date().getFullYear());
+            const viewMonth = ref(new Date().getMonth() + 1);
 
             // --- 计算属性 ---
-            const tempTotalWealth = computed(() => Object.values(wealthParts.value).reduce((s, n) => s + (parseFloat(n) || 0), 0));
-            const tasksDoneToday = computed(() => todayTasks.value.filter(t => t.done).length);
-            const activeWishes = computed(() => wishes.value.filter(w => !w.done));
-            const doneWishes = computed(() => wishes.value.filter(w => w.done));
-
             const displayAttributes = computed(() => {
                 const res = {};
                 Object.keys(attributes.value).forEach(k => {
@@ -393,170 +388,144 @@
                 return res;
             });
 
-            const sortedHistory = computed(() => {
-                const sorted = {};
-                Object.keys(history.value).sort((a,b) => b.localeCompare(a)).forEach(key => sorted[key] = history.value[key]);
-                return sorted;
-            });
-
             const filteredHistory = computed(() => {
                 const result = {};
                 Object.keys(history.value)
                     .filter(key => {
                         const item = history.value[key];
-                        const isNotSignOnly = item.type !== '签到';
-                        const matchesSearch = (item.note || "").includes(searchQuery.value) || key.includes(searchQuery.value);
-                        return isNotSignOnly && matchesSearch;
+                        return item.type !== '签到' && ((item.note || "").includes(searchQuery.value) || key.includes(searchQuery.value));
                     })
                     .sort((a, b) => b.localeCompare(a))
                     .forEach(key => result[key] = history.value[key]);
                 return result;
             });
 
-            const daysInViewMonth = computed(() => new Date(viewYear.value, viewMonth.value, 0).getDate());
-            const firstDayOffset = computed(() => { 
-                let first = new Date(viewYear.value, viewMonth.value - 1, 1).getDay(); 
-                return first === 0 ? 6 : first - 1; 
-            });
-
-            const weeklySignStatus = computed(() => {
-                const statuses = []; const tday = new Date();
-                for(let i=0; i<7; i++) {
-                    const d = new Date(tday); d.setDate(tday.getDate() - (tday.getDay() === 0 ? 6 : tday.getDay() - 1) + i);
-                    const k = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-                    statuses.push(!!history.value[k]?.signed);
-                }
-                return statuses;
-            });
-
-            // --- 核心方法 ---
-            const addTask = () => { if(newTask.value.name) { todayTasks.value.push({ ...newTask.value, id: Date.now(), done: false }); newTask.value.name = ""; } };
-            
-            const toggleTask = (i) => {
-                const t = todayTasks.value[i]; t.done = !t.done;
-                const gain = t.type === '主线' ? 50 : 20; const mult = t.done ? 1 : -1;
-                if(t.targetType === 'skill') {
-                    const s = skills.value.find(sk => sk.id == t.skillId);
-                    if(s) { 
-                        s.xp += (gain * mult); 
-                        if(t.done) { s.count = (s.count || 0) + 1; s.lastUsed = new Date().toLocaleDateString(); }
-                        attributes.value[s.bindAttr || 'int'].xp += (gain * mult); 
-                    }
-                } else { attributes.value[t.targetType].xp += (gain * mult); }
-            };
-
-            const confirmWealth = () => {
-                const lastTotal = user.value.wealth;
-                user.value.wealth = tempTotalWealth.value;
-                wealthHistory.value.push({
-                    date: new Date().toLocaleDateString(),
-                    total: user.value.wealth,
-                    change: user.value.wealth - lastTotal,
-                    parts: { ...wealthParts.value }
-                });
-                alert("存档成功！");
-                if(showWealthChart.value) renderChart('total');
-            };
-
-            const renderChart = (type) => {
-                nextTick(() => {
-                    const canvas = document.getElementById('wealthLineChart');
-                    if(!canvas) return;
-                    const ctx = canvas.getContext('2d');
-                    if(wealthChart) wealthChart.destroy();
-                    let filteredData = chartTimeRange.value === 'monthly' ? 
-                        wealthHistory.value.filter(item => item.date.split('/')[2] === "1").slice(-6) : 
-                        wealthHistory.value.slice(-7);
-                    
-                    const labels = filteredData.map(l => {
-                        const p = l.date.split('/');
-                        return chartTimeRange.value === 'monthly' ? `${p[1]}月` : `${p[2]}日`;
-                    });
-
-                    let chartData = type === 'total' ? filteredData.map(l => l.total) : filteredData.map(l => l.parts[wealthLabel[type]] || 0);
-
-                    wealthChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{ 
-                                label: '金额', data: chartData, 
-                                borderColor: '#d946ef', backgroundColor: 'rgba(217, 70, 239, 0.05)', 
-                                fill: true, tension: 0.4, pointRadius: 4 
-                            }]
-                        },
-                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { font: { size: 8 } } } } }
-                    });
-                });
-            };
-
-            const addSkill = () => { 
-                const n = prompt("新技能名称:"); 
-                if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, plusInt: 5, plusSan: 2, plusStr: 0, icon: '💎', lastUsed: '', insights: [] }); 
+            // --- 技能方法 (修复加成与查看) ---
+            const addSkill = () => {
+                const n = prompt("新技能名称:");
+                if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int', icon: '💎', lastUsed: '', plusInt: 5, plusSan: 2, plusStr: 0, insights: [] });
             };
             const deleteSkill = (id) => { if(confirm("确定要抹除这项技能及所有 Insight 轨迹吗？")) skills.value = skills.value.filter(s => s.id !== id); };
 
-            const addWish = () => { editingWish.value = { title: '', price: 0, note: '', sanExp: 100, colorClass: 'color-purple', done: false }; };
+            // --- 任务方法 (修复 Insight 记录生成) ---
+            const addTask = () => { if(newTask.value.name) { todayTasks.value.push({ ...newTask.value, id: Date.now(), done: false }); newTask.value.name = ""; } };
+            
+            const toggleTask = (i) => {
+                const t = todayTasks.value[i]; 
+                t.done = !t.done;
+                const mult = t.done ? 1 : -1;
+                
+                if(t.targetType === 'skill') {
+                    const s = skills.value.find(sk => sk.id == t.skillId);
+                    if(s) {
+                        // 计算 XP 增量
+                        const baseGain = t.type === '主线' ? 50 : 20;
+                        const totalGain = baseGain + (s.plusInt || 0); // 技能 XP 包含智慧加成
+                        
+                        s.xp += (totalGain * mult);
+                        attributes.value.int.xp += (s.plusInt * mult);
+                        attributes.value.san.xp += (s.plusSan * mult);
+                        attributes.value.str.xp += (s.plusStr * mult);
+
+                        if(t.done) {
+                            s.count = (s.count || 0) + 1;
+                            s.lastUsed = new Date().toLocaleDateString();
+                            // 生成 Insight 记录
+                            if(!s.insights) s.insights = [];
+                            s.insights.unshift({
+                                id: Date.now(),
+                                taskName: t.name,
+                                date: new Date().toLocaleString(),
+                                xpGain: totalGain
+                            });
+                        }
+                    }
+                } else {
+                    const gain = t.type === '主线' ? 50 : 20;
+                    attributes.value[t.targetType].xp += (gain * mult);
+                }
+            };
+
+            // --- 愿望方法 (修复备注输入) ---
+            const addWish = () => { 
+                editingWish.value = { id: null, title: '', price: 0, note: '', sanExp: 100, done: false }; 
+            };
             const saveWish = () => {
-                if(!editingWish.value.id) { editingWish.value.id = Date.now(); wishes.value.push(editingWish.value); }
-                else { const idx = wishes.value.findIndex(w => w.id === editingWish.value.id); wishes.value[idx] = editingWish.value; }
+                if(!editingWish.value.title) return alert("愿望名称不能为空");
+                if(!editingWish.value.id) { 
+                    editingWish.value.id = Date.now(); 
+                    wishes.value.push({...editingWish.value}); 
+                } else { 
+                    const idx = wishes.value.findIndex(w => w.id === editingWish.value.id);
+                    wishes.value[idx] = {...editingWish.value}; 
+                }
                 editingWish.value = null;
             };
             const toggleWish = (w) => {
                 w.done = !w.done;
                 if(w.done) {
-                    w.doneDate = new Date().toLocaleDateString();
                     attributes.value.san.xp += (w.sanExp || 100);
-                    history.value[`${new Date().toLocaleString()} (成就)`] = { note: `达成愿望: ${w.title}`, type: '愿望实现', signed: true };
+                    history.value[`${new Date().toLocaleString()} (愿望)`] = { note: `达成愿望: ${w.title}`, type: '成就' };
                 }
             };
 
-            const saveNote = () => {
-                if(!tempNote.value.trim()) return alert("写点什么吧~");
-                const key = `${new Date().toLocaleString()}`;
-                history.value[key] = { note: tempNote.value, type: '复盘', signed: true, status: dailyStatus.value };
-                user.value.status = dailyStatus.value;
-                tempNote.value = ""; 
-                alert("已记入历史书！");
-            };
-            const deleteHistory = (key) => { if(confirm("确定要抹除这段记忆吗？")) delete history.value[key]; };
-
+            // --- 数据持久化与备份 ---
             const exportData = () => {
                 const data = localStorage.getItem('LifeOS_V15_Master');
-                navigator.clipboard.writeText(data).then(() => alert("记忆已复制！")).catch(() => prompt("请手动复制：", data));
+                navigator.clipboard.writeText(data).then(() => alert("记忆已复制！"));
             };
             const importData = () => {
                 const json = prompt("请粘贴记忆代码：");
                 if (json) { try { JSON.parse(json); localStorage.setItem('LifeOS_V15_Master', json); location.reload(); } catch (e) { alert("格式错误！"); } }
             };
 
-            // --- 生命周期与监听 ---
+            const confirmWealth = () => {
+                user.value.wealth = Object.values(wealthParts.value).reduce((s, n) => s + (parseFloat(n) || 0), 0);
+                wealthHistory.value.push({ date: new Date().toLocaleDateString(), total: user.value.wealth, parts: { ...wealthParts.value } });
+                alert("资产已同步");
+            };
+
             onMounted(() => {
                 const s = localStorage.getItem('LifeOS_V15_Master');
                 if(s) {
                     const d = JSON.parse(s);
-                    user.value = d.user; attributes.value = d.attributes; 
-                    skills.value = (d.skills || []).map(sk => ({plusInt:5, plusSan:2, plusStr:0, ...sk}));
+                    user.value = d.user || user.value;
+                    attributes.value = d.attributes || attributes.value;
+                    skills.value = (d.skills || []).map(sk => ({
+                        plusInt: 5, plusSan: 2, plusStr: 0, insights: [], ...sk 
+                    }));
                     wealthParts.value = d.wealthParts || wealthParts.value;
                     wealthHistory.value = d.wealthHistory || [];
                     todayTasks.value = d.todayTasks || [];
-                    history.value = d.history || {}; wishes.value = d.wishes || [];
+                    history.value = d.history || {};
+                    wishes.value = d.wishes || [];
                 }
             });
 
-            watch([user, attributes, skills, wealthHistory, wealthParts, todayTasks, wishes, history], () => {
+            watch([user, attributes, skills, todayTasks, wishes, history, wealthParts], () => {
                 localStorage.setItem('LifeOS_V15_Master', JSON.stringify({
                     user: user.value, attributes: attributes.value, skills: skills.value,
-                    wealthHistory: wealthHistory.value, wealthParts: wealthParts.value,
-                    todayTasks: todayTasks.value, history: history.value, wishes: wishes.value
+                    todayTasks: todayTasks.value, wishes: wishes.value, history: history.value,
+                    wealthParts: wealthParts.value, wealthHistory: wealthHistory.value
                 }));
             }, { deep: true });
 
             return {
-                activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, editingSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
-                displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus, filteredHistory, searchQuery, isHistoryOpen, dailyStatus,
+                activeTab, tabs, user, attributes, skills, todayTasks, history, wishes, 
+                wealthParts, wealthLabel, wealthHistory, showWealthChart, chartTimeRange,
+                selectedSkill, editingSkill, newTask, editingWish, wishTab,
+                displayAttributes, tempTotalWealth: computed(() => Object.values(wealthParts.value).reduce((s, n) => s + (parseFloat(n) || 0), 0)),
+                filteredHistory, searchQuery, dailyStatus,
                 statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低能量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
-                addTask, toggleTask, confirmWealth, renderChart, chartTimeRange, addWish, saveWish, toggleWish, saveNote, addSkill, deleteSkill, deleteHistory, exportData, importData
+                addTask, toggleTask, addSkill, deleteSkill, addWish, saveWish, toggleWish, confirmWealth,
+                exportData, importData, 
+                saveNote: () => {
+                    if(!tempNote.value.trim()) return;
+                    history.value[new Date().toLocaleString()] = { note: tempNote.value, type: '复盘', status: dailyStatus.value };
+                    user.value.status = dailyStatus.value;
+                    tempNote.value = "";
+                    alert("已记录");
+                }
             };
         }
     }).mount('#app')
