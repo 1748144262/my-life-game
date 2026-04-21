@@ -307,6 +307,11 @@
                 <input v-model="editingWish.title" placeholder="愿望名称" class="w-full text-xl font-black border-b-2 p-2 outline-none border-fuchsia-50 bg-transparent">
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="text-[9px] font-black text-slate-300 uppercase">目标预算</label><input v-model.number="editingWish.price" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
+                    <div class="mt-2">
+    <label class="text-xs text-gray-400">愿望备注</label>
+    <textarea v-model="editingWish.note" placeholder="备注点什么吧..." 
+              class="w-full bg-slate-800 border-none rounded p-2 text-sm mt-1"></textarea>
+</div>
                     <div><label class="text-[9px] font-black text-slate-300 uppercase">SAN 奖励</label><input v-model.number="editingWish.sanExp" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
                 </div>
                 <button @click="saveWish" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xs shadow-xl uppercase tracking-widest">Confirm Wish</button>
@@ -504,7 +509,7 @@
                     });
                 };
 
-                const addWish = () => { editingWish.value = { title: '', price: 0, sanExp: 100, colorClass: 'color-purple', done: false }; };
+                const addWish = () => { editingWish.value = { title: '', price: 0, note: '', sanExp: 100, colorClass: 'color-purple', done: false }; };
                 const editWish = (w) => { editingWish.value = { ...w }; };
                 const saveWish = () => {
                     if(!editingWish.value.id) { editingWish.value.id = Date.now(); wishes.value.push(editingWish.value); }
@@ -561,7 +566,33 @@
                         .forEach(key => result[key] = history.value[key]);
                     return result;
                 });
-                const addSkill = () => { const n = prompt("新技能名称:"); if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int', icon: '💎', lastUsed: '' }); };
+                // 修改技能初始结构，允许设定自定义属性加成
+const addSkill = () => { 
+    const n = prompt("新技能名称:"); 
+    if(n) {
+        skills.value.push({ 
+            id: Date.now(), 
+            name: n, 
+            xp: 0, 
+            count: 0, 
+            // 新增：自定义加成数值
+            plusInt: 5,  // 智慧加成
+            plusSan: 2,  // 心情加成
+            plusStr: 0,  // 力量加成
+            icon: '💎', 
+            lastUsed: '',
+            insights: [] // 用于存放 Insight 记录
+        }); 
+    } 
+};
+
+// 新增：删除技能函数
+const deleteSkill = (id) => {
+    if(confirm("确定要抹除这项技能及所有 Insight 轨迹吗？")) {
+        skills.value = skills.value.filter(s => s.id !== id);
+    }
+};
+                
 // 记忆导出功能
 const exportData = () => {
     const data = localStorage.getItem('LifeOS_V15_Master');
@@ -619,7 +650,7 @@ const importData = () => {
 
                 return {
                     chartTimeRange, renderChart, activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
-                    displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
+                    displayAttributes, tempTotalWealth, deleteSkill, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
                     statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低能量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
                     addTask, toggleTask, confirmWealth, renderChart, chartTimeRange, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
     searchQuery, isHistoryOpen, dailyStatus, filteredHistory, deleteHistory
