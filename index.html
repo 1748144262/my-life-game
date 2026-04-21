@@ -459,11 +459,40 @@
                     else history.value[k].signed = !history.value[k].signed;
                 };
                 const saveNote = () => {
+                    if(!tempNote.value.trim()) return alert("写点什么吧~");
                     const key = `${new Date().toLocaleString()}`;
-                    history.value[key] = { note: tempNote.value, type: '复盘', signed: true };
-                    tempNote.value = ""; alert("已记录！");
+                    // 保存时加入了 status 状态
+                    history.value[key] = { 
+                        note: tempNote.value, 
+                        type: '复盘', 
+                        signed: true, 
+                        status: dailyStatus.value 
+                    };
+                    // 同时更新看板的大气层状态
+                    user.value.status = dailyStatus.value;
+                    tempNote.value = ""; 
+                    alert("已记入历史书！");
+                };
+                const deleteHistory = (key) => {
+                    if(confirm("确定要抹除这段记忆吗？")) {
+                        delete history.value[key];
+                    }
                 };
 
+                const filteredHistory = computed(() => {
+                    const result = {};
+                    // 排除掉只有“签到”类型的记录，并进行关键词过滤
+                    Object.keys(history.value)
+                        .filter(key => {
+                            const item = history.value[key];
+                            const isNotSignOnly = item.type !== '签到';
+                            const matchesSearch = item.note.includes(searchQuery.value) || key.includes(searchQuery.value);
+                            return isNotSignOnly && matchesSearch;
+                        })
+                        .sort((a, b) => b.localeCompare(a))
+                        .forEach(key => result[key] = history.value[key]);
+                    return result;
+                });
                 const addSkill = () => { const n = prompt("新技能名称:"); if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int', icon: '💎', lastUsed: '' }); };
 // 记忆导出功能
 const exportData = () => {
@@ -524,8 +553,9 @@ const importData = () => {
                     activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
                     displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
                     statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低电量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
-                    addTask, toggleTask, confirmWealth, renderChart, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill,exportData, importData
-                };
+                    addTask, toggleTask, confirmWealth, renderChart, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
+    searchQuery, isHistoryOpen, dailyStatus, filteredHistory, deleteHistory
+};
             }
         }).mount('#app')
     </script>
