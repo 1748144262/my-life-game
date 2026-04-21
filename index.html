@@ -562,7 +562,24 @@
                         .forEach(key => result[key] = history.value[key]);
                     return result;
                 });
-                const addSkill = () => { const n = prompt("新技能名称:"); if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int', icon: '💎', lastUsed: '' }); };
+                const addSkill = () => { 
+    const n = prompt("新技能名称:"); 
+    if(n) {
+        skills.value.push({ 
+            id: Date.now(), 
+            name: n, 
+            xp: 0, 
+            count: 0, 
+            // 设定该技能每次触发时给看板属性加多少值
+            plusInt: 5,  // 默认增加5点智慧经验
+            plusSan: 2,  // 默认增加2点心情经验
+            plusStr: 0,  // 默认增加0点力量经验
+            icon: '💎', 
+            lastUsed: '',
+            insights: [] // 用于记录相关任务的数组
+        }); 
+    }
+};
 // 记忆导出功能
 const exportData = () => {
     const data = localStorage.getItem('LifeOS_V15_Master');
