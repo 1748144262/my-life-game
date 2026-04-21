@@ -621,6 +621,10 @@
             insights: [] // 存放关联的任务记录
         }); 
     } 
+};const deleteSkill = (id) => {
+    if(confirm("确定要抹除这项技能及所有 Insight 轨迹吗？")) {
+        skills.value = skills.value.filter(s => s.id !== id);
+    }
 };
 // 记忆导出功能
 const exportData = () => {
