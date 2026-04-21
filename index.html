@@ -180,6 +180,7 @@
 
         <section v-show="activeTab === 'history'" class="space-y-4 animate-in slide-in-from-right">
             <h2 class="text-xl font-black italic text-slate-700">CHRONICLE</h2>
+            
             <div class="card p-4 border-none shadow-sm">
                 <div class="flex justify-between items-center mb-4 text-[10px] font-black px-1 uppercase text-slate-400">
                     <span>{{ viewYear }} / {{ viewMonth }}</span>
@@ -192,20 +193,51 @@
             </div>
             
             <div class="card p-4 border-none shadow-sm space-y-3">
-                <textarea v-model="tempNote" class="w-full text-xs bg-slate-50/50 p-4 rounded-2xl h-24 outline-none border border-transparent focus:border-fuchsia-100 transition-all" placeholder="写下今日复盘..."></textarea>
+                <div class="text-[9px] font-black text-slate-300 uppercase tracking-widest text-center">Current Energy Status</div>
+                <div class="flex justify-around py-2">
+                    <button v-for="s in ['积极','正常','低能量']" :key="s" @click="dailyStatus = s" 
+                        class="flex items-center space-x-2 px-4 py-2 rounded-2xl transition-all border shadow-sm"
+                        :class="dailyStatus === s ? 'bg-slate-800 text-white border-slate-800 scale-105' : 'bg-white text-slate-400 border-slate-50'">
+                        <span class="w-2.5 h-2.5 rounded-full" :class="{'积极':'bg-emerald-400','正常':'bg-amber-400','低能量':'bg-rose-400'}[s]"></span>
+                        <span class="text-xs font-bold">{{ s }}</span>
+                    </button>
+                </div>
+                <textarea v-model="tempNote" class="w-full text-xs bg-slate-50/50 p-4 rounded-2xl h-24 outline-none border border-transparent focus:border-fuchsia-100 transition-all" placeholder="写下今日复盘记忆..."></textarea>
                 <button @click="saveNote" class="w-full bg-fuchsia-500 text-white text-[10px] font-black py-4 rounded-2xl shadow-lg shadow-fuchsia-100 uppercase tracking-widest">Save Memory</button>
             </div>
 
             <div class="space-y-3 pb-4">
-                <div v-for="(v, k) in sortedHistory" :key="k" class="card p-4 border-none shadow-sm">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-[9px] font-black bg-fuchsia-50 px-2 py-0.5 rounded text-fuchsia-400">{{ k }}</span>
-                        <span class="text-[8px] font-bold text-slate-300 uppercase">{{ v.type || '日常' }}</span>
+                <button @click="isHistoryOpen = !isHistoryOpen" class="w-full py-4 bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm text-[10px] font-black text-slate-400 uppercase tracking-widest flex justify-center items-center space-x-2">
+                    <span>{{ isHistoryOpen ? '📖 Close Chronicle' : '📘 Open Chronicle' }}</span>
+                </button>
+
+                <div v-if="isHistoryOpen" class="space-y-3 animate-in fade-in slide-in-from-top-2">
+                    <div class="relative px-1">
+                        <input v-model="searchQuery" placeholder="搜索记忆内容或日期..." class="w-full bg-white border-none rounded-2xl p-4 pl-10 text-xs outline-none shadow-sm focus:ring-1 ring-fuchsia-100">
+                        <span class="absolute left-4 top-4 opacity-30 text-xs">🔍</span>
                     </div>
-                    <p class="text-xs leading-relaxed text-slate-600">{{ v.note }}</p>
+
+                    <div v-for="(v, k) in filteredHistory" :key="k" class="card p-5 border-none shadow-sm relative group bg-white/80">
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-[9px] font-black bg-slate-100 px-2 py-1 rounded text-slate-500 font-mono">{{ k }}</span>
+                                <div v-if="v.status" class="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-50">
+                                    <div class="w-1.5 h-1.5 rounded-full" :class="{'积极':'bg-emerald-400','正常':'bg-amber-400','低能量':'bg-rose-400'}[v.status]"></div>
+                                    <span class="text-[8px] font-bold text-slate-400">{{ v.status }}</span>
+                                </div>
+                            </div>
+                            <button @click="deleteHistory(k)" class="text-[10px] font-black text-rose-300 hover:text-rose-500 transition-colors px-2 py-1">DELETE</button>
+                        </div>
+                        <p class="text-xs leading-relaxed text-slate-600 italic">"{{ v.note }}"</p>
+                    </div>
+                    
+                    <div v-if="Object.keys(filteredHistory).length === 0" class="text-center py-10 text-slate-300 text-[10px] font-bold uppercase tracking-widest">
+                        No memories found
+                    </div>
                 </div>
             </div>
         </section>
+        ```
 
         <div v-if="selectedSkill" class="fixed inset-0 bg-white/90 backdrop-blur-xl z-50 p-8 flex flex-col animate-in zoom-in">
             <div class="flex justify-between items-center mb-8">
@@ -313,6 +345,9 @@
                 // 复盘逻辑
                 const history = ref({});
                 const tempNote = ref("");
+                const searchQuery = ref(""); // 搜索关键词
+                const isHistoryOpen = ref(false); // 历史书折叠状态
+                const dailyStatus = ref('正常'); // 复盘选择的状态
                 const now = new Date();
                 const viewYear = ref(now.getFullYear());
                 const viewMonth = ref(now.getMonth() + 1);
