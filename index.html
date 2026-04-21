@@ -377,6 +377,21 @@
                 const selectedSkill = ref(null);
                 const showSkillChartModal = ref(false);
 
+                const editingSkill = ref(null); // 控制编辑状态
+
+                const startEditSkill = (s) => {
+    // 复制一份数据，防止直接修改原始数据
+    editingSkill.value = JSON.parse(JSON.stringify(s));
+};
+
+                const saveSkillConfig = () => {
+    const idx = skills.value.findIndex(sk => sk.id === editingSkill.value.id);
+    if(idx !== -1) {
+        skills.value[idx] = { ...editingSkill.value };
+        alert("技能配置已重构！");
+    }
+    editingSkill.value = null;
+};
                 // 任务逻辑
                 const todayTasks = ref([]);
                 const newTask = ref({ name: '', targetType: 'skill', skillId: 1, type: '主线' });
@@ -395,6 +410,16 @@
                 const now = new Date();
                 const viewYear = ref(now.getFullYear());
                 const viewMonth = ref(now.getMonth() + 1);
+
+                // 删除技能
+                const deleteSkill = (id) => {
+    if(confirm("确定要抹除这项技能及所有 Insight 轨迹吗？")) {
+        skills.value = skills.value.filter(sk => sk.id !== id);
+    }
+};
+
+// 技能编辑状态变量 (加在其他 ref 旁边)
+                const editingSkill = ref(null);
 
                 // 计算属性
                 const tempTotalWealth = computed(() => Object.values(wealthParts.value).reduce((s, n) => s + (parseFloat(n) || 0), 0));
