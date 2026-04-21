@@ -136,6 +136,9 @@
                 <div v-for="w in activeWishes" :key="w.id" @click="editWish(w)" class="card p-4 aspect-square flex flex-col justify-between border-none shadow-sm" :class="w.colorClass">
                     <div class="flex justify-between"><span class="text-xs font-black">{{ w.title }}</span><input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500"></div>
                     <div class="text-[9px] font-mono text-slate-400">EST. ￥{{ w.price }}</div>
+                    <div class="text-[9px] text-slate-400 mt-1">
+    {{ w.note }}
+</div>
                 </div>
                 <button @click="addWish" class="card aspect-square border-2 border-dashed border-fuchsia-100 text-fuchsia-200 text-3xl flex items-center justify-center">+</button>
             </div>
@@ -256,7 +259,6 @@
                 </div>
             </div>
         </section>
-        ```
 
         <div v-if="selectedSkill" class="fixed inset-0 bg-white/90 backdrop-blur-xl z-50 p-8 flex flex-col animate-in zoom-in">
             <div class="flex justify-between items-center mb-8">
@@ -270,6 +272,15 @@
                     <p class="text-sm font-bold text-fuchsia-400 tracking-widest uppercase">Level {{ Math.floor(selectedSkill.xp/1000)+1 }}</p>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
+                    <div class="card p-4 bg-white/60 border-none">
+    <div class="text-xs font-bold mb-2">任务记录</div>
+    <div v-if="selectedSkill.logs && selectedSkill.logs.length">
+        <div v-for="log in selectedSkill.logs" :key="log.date" class="text-[10px] text-slate-500">
+            {{ log.date }} - {{ log.name }} (+{{ log.gain }})
+        </div>
+    </div>
+    <div v-else class="text-[10px] text-slate-300">暂无记录</div>
+</div>
                     <div class="card p-4 bg-fuchsia-50/50 border-none shadow-none">
                         <div class="text-[9px] font-black text-fuchsia-300 uppercase">注入总次数</div>
                         <div class="text-xl font-mono font-black text-fuchsia-600">{{ selectedSkill.count || 0 }}次</div>
@@ -279,6 +290,19 @@
                         <div class="text-[10px] font-bold text-slate-600 mt-2">{{ selectedSkill.lastUsed || '从未记录' }}</div>
                     </div>
                 </div>
+                <div class="card p-4 bg-white border-none">
+    <div class="text-[10px] font-bold mb-2">技能设置</div>
+
+    <input v-model="selectedSkill.name" class="w-full mb-2 p-2 text-xs border rounded" placeholder="技能名称">
+
+    <div class="grid grid-cols-3 gap-2">
+        <input v-model.number="selectedSkill.bonus.int" placeholder="INT+" class="p-2 text-xs border rounded">
+        <input v-model.number="selectedSkill.bonus.san" placeholder="SAN+" class="p-2 text-xs border rounded">
+        <input v-model.number="selectedSkill.bonus.str" placeholder="STR+" class="p-2 text-xs border rounded">
+    </div>
+
+    <button @click="deleteSkill(selectedSkill.id)" class="mt-3 text-xs text-rose-400">删除技能</button>
+</div>
                 <div class="card p-5 bg-slate-800 text-white border-none shadow-xl space-y-4">
                     <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Core Contribution</div>
                     <div class="flex justify-around items-center">
@@ -306,6 +330,7 @@
                     <div v-for="c in ['pink','green','blue','purple']" :key="c" @click="editingWish.colorClass = 'color-'+c" class="w-8 h-8 rounded-full border-2" :class="['color-'+c, editingWish.colorClass === 'color-'+c ? 'border-fuchsia-500' : 'border-transparent']"></div>
                 </div>
                 <input v-model="editingWish.title" placeholder="愿望名称" class="w-full text-xl font-black border-b-2 p-2 outline-none border-fuchsia-50 bg-transparent">
+                <textarea v-model="editingWish.note" placeholder="备注..." class="w-full mt-3 p-3 text-xs bg-slate-50 rounded-xl outline-none"></textarea>
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="text-[9px] font-black text-slate-300 uppercase">目标预算</label><input v-model.number="editingWish.price" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
                     <div><label class="text-[9px] font-black text-slate-300 uppercase">SAN 奖励</label><input v-model.number="editingWish.sanExp" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
@@ -349,9 +374,19 @@
                 let wealthChart = null;
 
                 // 技能逻辑
-                const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int', icon: '🧠', lastUsed: '' }]);
-                const selectedSkill = ref(null);
-                const showSkillChartModal = ref(false);
+                const skills = ref([{ 
+    id: 1, 
+    name: '深度学习', 
+    xp: 0, 
+    count: 0, 
+    bindAttr: 'int', 
+    icon: '🧠', 
+    lastUsed: '',
+
+    // 👇新增
+    bonus: { int: 0, san: 0, str: 0 },
+    logs: []
+}]);
 
                 // 任务逻辑
                 const todayTasks = ref([]);
@@ -419,10 +454,28 @@
                     if(t.targetType === 'skill') {
                         const s = skills.value.find(sk => sk.id == t.skillId);
                         if(s) { 
-                            s.xp += (gain * mult); 
-                            if(t.done) { s.count = (s.count || 0) + 1; s.lastUsed = new Date().toLocaleDateString(); }
-                            attributes.value[s.bindAttr].xp += (gain * mult); 
-                        }
+    s.xp += (gain * mult); 
+
+    if(t.done) { 
+        s.count = (s.count || 0) + 1; 
+        s.lastUsed = new Date().toLocaleDateString(); 
+
+        // 技能额外加成
+        attributes.value.int.xp += s.bonus.int || 0;
+        attributes.value.san.xp += s.bonus.san || 0;
+        attributes.value.str.xp += s.bonus.str || 0;
+
+        // 任务日志
+        s.logs = s.logs || [];
+        s.logs.push({
+            name: t.name,
+            date: new Date().toLocaleString(),
+            gain: gain
+        });
+    }
+
+    attributes.value[s.bindAttr].xp += (gain * mult); 
+}
                     } else { attributes.value[t.targetType].xp += (gain * mult); }
                 };
 
@@ -469,14 +522,12 @@
                         // --- 关键修改：匹配你的输入框字段 ---
                         let chartData = [];
                         if (type === 'total') {
-                            chartData = filteredData.map(l => l.total);
-                        } else if (type === 'alipay') {
-                            // 对应你 wealthParts 里的“支付宝理财”
-                            chartData = filteredData.map(l => l.parts['支付宝理财'] || 0);
-                        } else if (type === 'others') {
-                            // 对应你 wealthParts 里的“银行存款”
-                            chartData = filteredData.map(l => l.parts['银行存款'] || 0);
-                        }
+    chartData = filteredData.map(l => l.total);
+} else if (type === 'alipay') {
+    chartData = filteredData.map(l => l.parts.ali || 0);
+} else if (type === 'others') {
+    chartData = filteredData.map(l => l.parts.bank || 0);
+}
 
                         wealthChart = new Chart(ctx, {
                             type: 'line',
@@ -505,7 +556,17 @@
                     });
                 };
 
-                const addWish = () => { editingWish.value = { title: '', price: 0, sanExp: 100, colorClass: 'color-purple', done: false }; };
+                const addWish = () => { 
+    editingWish.value = { 
+        title: '', 
+        price: 0, 
+        sanExp: 100, 
+        colorClass: 'color-purple', 
+        done: false,
+
+        note: '' // 👈新增
+    }; 
+};
                 const editWish = (w) => { editingWish.value = { ...w }; };
                 const saveWish = () => {
                     if(!editingWish.value.id) { editingWish.value.id = Date.now(); wishes.value.push(editingWish.value); }
@@ -562,7 +623,25 @@
                         .forEach(key => result[key] = history.value[key]);
                     return result;
                 });
-                const addSkill = () => { const n = prompt("新技能名称:"); if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int', icon: '💎', lastUsed: '' }); };
+                const addSkill = () => { 
+    const n = prompt("新技能名称:"); 
+    if(n) skills.value.push({ 
+        id: Date.now(), 
+        name: n, 
+        xp: 0, 
+        count: 0, 
+        bindAttr: 'int', 
+        icon: '💎', 
+        lastUsed: '',
+
+        bonus: { int: 0, san: 0, str: 0 },
+        logs: []
+    }); 
+};
+                const deleteSkill = (id) => {
+    skills.value = skills.value.filter(s => s.id !== id);
+    selectedSkill.value = null;
+};
 // 记忆导出功能
 const exportData = () => {
     const data = localStorage.getItem('LifeOS_V15_Master');
@@ -620,7 +699,7 @@ const importData = () => {
 
                 return {
                     chartTimeRange, renderChart, activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
-                    displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
+                    displayAttributes, tempTotalWealth, deleteSkill, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
                     statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低能量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
                     addTask, toggleTask, confirmWealth, renderChart, chartTimeRange, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
     searchQuery, isHistoryOpen, dailyStatus, filteredHistory, deleteHistory
