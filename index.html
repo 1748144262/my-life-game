@@ -159,9 +159,16 @@
             <div v-if="showWealthChart" class="card p-4 animate-in zoom-in border-none shadow-xl">
                 <div class="chart-container"><canvas id="wealthLineChart"></canvas></div>
                 <div class="flex justify-around mt-4">
-                    <button @click="renderChart('total')" class="text-[9px] font-bold px-3 py-1 bg-slate-100 rounded-lg">总资产</button>
-<button @click="renderChart('alipay')" class="text-[9px] font-bold px-3 py-1 bg-blue-50 text-blue-500 rounded-lg">支付宝</button>
-<button @click="renderChart('others')" class="text-[9px] font-bold px-3 py-1 bg-slate-800 text-white rounded-lg">其他账户</button>
+                    <div class="flex justify-around mt-4">
+    <button @click="renderChart('total')" class="text-[9px] font-bold px-3 py-1 bg-slate-100 rounded-lg">总资产</button>
+    <button @click="renderChart('alipay')" class="text-[9px] font-bold px-3 py-1 bg-blue-50 text-blue-500 rounded-lg">支付宝理财</button>
+    <button @click="renderChart('others')" class="text-[9px] font-bold px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg">银行存款</button>
+</div>
+
+<div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
+    <button @click="chartTimeRange = 'recent'; renderChart('total')" ...>最近记录</button>
+    <button @click="chartTimeRange = 'monthly'; renderChart('total')" ...>每月1号趋势</button>
+</div>
                 </div>
                 <div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
     <button @click="chartTimeRange = 'week'; renderChart('total')" 
@@ -442,36 +449,33 @@
                         let filteredData = [];
                         
                         if (chartTimeRange.value === 'monthly') {
-                            // --- 逻辑 A：提取每个月的最后一条记录 ---
-                            const monthMap = {};
-                            wealthHistory.value.forEach(item => {
-                                const [y, m, d] = item.date.split('/');
-                                const monthKey = `${y}-${m}`;
-                                // 总是覆盖，这样最后存进来的就是该月最后一天
-                                monthMap[monthKey] = item;
-                            });
-                            // 取最近6个月
-                            filteredData = Object.values(monthMap).slice(-6);
+                            // --- 逻辑 A：只提取每月 1 号的数据 ---
+                            // 遍历历史，只保留日期结尾是 "/1" 的记录
+                            filteredData = wealthHistory.value.filter(item => {
+                                const parts = item.date.split('/');
+                                return parts[2] === "1"; 
+                            }).slice(-6); // 只取最近 6 个月
                         } else {
                             // --- 逻辑 B：默认取最近 7 次记录 ---
                             filteredData = wealthHistory.value.slice(-7);
                         }
 
-                        // 坐标轴标签
+                        // 坐标轴标签：月视图显示“X月”，周视图显示“X日”
                         const labels = filteredData.map(l => {
                             const p = l.date.split('/');
                             return chartTimeRange.value === 'monthly' ? `${p[1]}月` : `${p[2]}日`;
                         });
 
-                        // 数据处理
+                        // --- 关键修改：匹配你的输入框字段 ---
                         let chartData = [];
                         if (type === 'total') {
                             chartData = filteredData.map(l => l.total);
                         } else if (type === 'alipay') {
-                            chartData = filteredData.map(l => l.parts['alipay'] || 0);
+                            // 对应你 wealthParts 里的“支付宝理财”
+                            chartData = filteredData.map(l => l.parts['支付宝理财'] || 0);
                         } else if (type === 'others') {
-                            // 计算“其他”：总资产 减去 支付宝
-                            chartData = filteredData.map(l => l.total - (l.parts['alipay'] || 0));
+                            // 对应你 wealthParts 里的“银行存款”
+                            chartData = filteredData.map(l => l.parts['银行存款'] || 0);
                         }
 
                         wealthChart = new Chart(ctx, {
@@ -481,7 +485,7 @@
                                 datasets: [{ 
                                     label: '金额', 
                                     data: chartData, 
-                                    borderColor: type === 'alipay' ? '#3b82f6' : '#d946ef', 
+                                    borderColor: type === 'alipay' ? '#3b82f6' : (type === 'others' ? '#10b981' : '#d946ef'), 
                                     backgroundColor: 'rgba(217, 70, 239, 0.05)', 
                                     fill: true, 
                                     tension: 0.4, 
