@@ -160,32 +160,54 @@
             </div>
 
             <div v-if="showWealthChart" class="card p-4 animate-in zoom-in border-none shadow-xl">
-                <div class="chart-container"><canvas id="wealthLineChart"></canvas></div>
-                <div class="flex justify-around mt-4">
-                    <div class="flex justify-around mt-4">
-    <button @click="renderChart('total')" class="text-[9px] font-bold px-3 py-1 bg-slate-100 rounded-lg">总资产</button>
-    <button @click="renderChart('alipay')" class="text-[9px] font-bold px-3 py-1 bg-blue-50 text-blue-500 rounded-lg">支付宝理财</button>
-    <button @click="renderChart('others')" class="text-[9px] font-bold px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg">银行存款</button>
-</div>
+    <div class="chart-container">
+        <canvas id="wealthLineChart"></canvas>
+    </div>
 
-<div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
-    <button @click="chartTimeRange = 'recent'; renderChart('total')" ...>最近记录</button>
-    <button @click="chartTimeRange = 'monthly'; renderChart('total')" ...>每月1号趋势</button>
+    <!-- 数据类型切换 -->
+    <div class="flex justify-around mt-4">
+        <button 
+            @click="renderChart('total')" 
+            class="text-[9px] font-bold px-3 py-1 bg-slate-100 rounded-lg">
+            总资产
+        </button>
+
+        <button 
+            @click="renderChart('alipay')" 
+            class="text-[9px] font-bold px-3 py-1 bg-blue-50 text-blue-500 rounded-lg">
+            支付宝理财
+        </button>
+
+        <button 
+            @click="renderChart('others')" 
+            class="text-[9px] font-bold px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg">
+            银行存款
+        </button>
+    </div>
+
+    <!-- 时间维度切换（关键修复区） -->
+    <div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
+
+        <button 
+            @click="chartTimeRange = 'week'; renderChart('total')" 
+            class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
+            :class="chartTimeRange === 'week' 
+                ? 'bg-fuchsia-500 text-white shadow-md' 
+                : 'bg-slate-50 text-slate-400'">
+            7天趋势
+        </button>
+
+        <button 
+            @click="chartTimeRange = 'monthly'; renderChart('total')" 
+            class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
+            :class="chartTimeRange === 'monthly' 
+                ? 'bg-fuchsia-500 text-white shadow-md' 
+                : 'bg-slate-50 text-slate-400'">
+            每月1号趋势
+        </button>
+
+    </div>
 </div>
-                </div>
-                <div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
-    <button @click="chartTimeRange = 'week'; renderChart('total')" 
-        class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
-        :class="chartTimeRange === 'week' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
-        7 Days
-    </button>
-    <button @click="chartTimeRange = 'month'; renderChart('total')" 
-        class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
-        :class="chartTimeRange === 'month' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
-        30 Days
-    </button>
-</div>
-            </div>
 
             <div class="card p-6 space-y-4 shadow-xl shadow-fuchsia-100/30 border-none">
                 <div v-for="(label, key) in wealthLabel" :key="key" class="flex justify-between items-center bg-slate-50/50 p-3 rounded-2xl">
@@ -638,10 +660,6 @@
         logs: []
     }); 
 };
-                const deleteSkill = (id) => {
-    skills.value = skills.value.filter(s => s.id !== id);
-    selectedSkill.value = null;
-};
 // 记忆导出功能
 const exportData = () => {
     const data = localStorage.getItem('LifeOS_V15_Master');
@@ -698,10 +716,10 @@ const importData = () => {
                 watch(showWealthChart, (val) => { if(val) renderChart('total'); });
 
                 return {
-                    chartTimeRange, renderChart, activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
+                    renderChart, activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
                     displayAttributes, tempTotalWealth, deleteSkill, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
                     statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低能量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
-                    addTask, toggleTask, confirmWealth, renderChart, chartTimeRange, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
+                    addTask, toggleTask, confirmWealth, chartTimeRange, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
     searchQuery, isHistoryOpen, dailyStatus, filteredHistory, deleteHistory
 };
             }
