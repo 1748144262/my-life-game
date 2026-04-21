@@ -306,12 +306,21 @@
                     <div v-for="c in ['pink','green','blue','purple']" :key="c" @click="editingWish.colorClass = 'color-'+c" class="w-8 h-8 rounded-full border-2" :class="['color-'+c, editingWish.colorClass === 'color-'+c ? 'border-fuchsia-500' : 'border-transparent']"></div>
                 </div>
                 <input v-model="editingWish.title" placeholder="愿望名称" class="w-full text-xl font-black border-b-2 p-2 outline-none border-fuchsia-50 bg-transparent">
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-[9px] font-black text-slate-300 uppercase">目标预算</label><input v-model.number="editingWish.price" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
-                    <div><label class="text-[9px] font-black text-slate-300 uppercase">SAN 奖励</label><input v-model.number="editingWish.sanExp" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
-                </div>
-                <button @click="saveWish" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xs shadow-xl uppercase tracking-widest">Confirm Wish</button>
-                <button v-if="editingWish.id" @click="deleteWish(editingWish.id)" class="w-full text-rose-400 font-bold text-xs">Delete Wish</button>
+<div class="grid grid-cols-2 gap-4">
+    <div><label class="text-[9px] font-black text-slate-300 uppercase">目标预算</label><input v-model.number="editingWish.price" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
+    <div><label class="text-[9px] font-black text-slate-300 uppercase">SAN 奖励</label><input v-model.number="editingWish.sanExp" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
+</div>
+
+<div class="mt-4">
+    <label class="text-[9px] font-black text-slate-300 uppercase">愿望备注 (Insight)</label>
+    <textarea 
+        v-model="editingWish.note" 
+        placeholder="写下关于这个愿望的详情或实现后的意义..." 
+        class="w-full p-4 bg-slate-50 rounded-2xl text-xs mt-1 outline-none min-h-[80px] border-none">
+    </textarea>
+</div>
+<button @click="saveWish" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xs shadow-xl uppercase tracking-widest mt-4">Confirm Wish</button>
+<button v-if="editingWish.id" @click="deleteWish(editingWish.id)" class="w-full text-rose-400 font-bold text-xs mt-2">Delete Wish</button>
             </div>
         </div>
 
@@ -537,7 +546,9 @@
                     });
                 };
 
-                const addWish = () => { editingWish.value = { title: '', price: 0, sanExp: 100, colorClass: 'color-purple', done: false }; };
+                const addWish = () => { 
+    editingWish.value = { title: '', price: 0, sanExp: 100, note: '', colorClass: 'color-purple', done: false }; 
+};
                 const editWish = (w) => { editingWish.value = { ...w }; };
                 const saveWish = () => {
                     if(!editingWish.value.id) { editingWish.value.id = Date.now(); wishes.value.push(editingWish.value); }
