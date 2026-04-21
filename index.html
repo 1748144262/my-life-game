@@ -39,6 +39,10 @@
                         </div>
                     </div>
                 </div>
+               <div class="flex space-x-2 mb-2">
+    <button @click="exportData" class="flex-1 bg-white/80 py-2 rounded-xl text-[10px] font-black text-slate-500 shadow-sm uppercase tracking-widest">📤 导出记忆</button>
+    <button @click="importData" class="flex-1 bg-white/80 py-2 rounded-xl text-[10px] font-black text-fuchsia-500 shadow-sm uppercase tracking-widest">📥 注入记忆</button>
+</div>
                 <div class="flex space-x-1.5 bg-white/60 p-2 rounded-2xl backdrop-blur-sm shadow-sm">
                     <div v-for="(signed, d) in weeklySignStatus" :key="d" class="flex flex-col items-center">
                         <div class="w-1.5 h-1.5 rounded-full" :class="signed ? 'bg-fuchsia-400' : 'bg-slate-200'"></div>
@@ -426,7 +430,38 @@
                 };
 
                 const addSkill = () => { const n = prompt("新技能名称:"); if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int', icon: '💎', lastUsed: '' }); };
+// 记忆导出功能
+const exportData = () => {
+    const data = localStorage.getItem('LifeOS_V15_Master');
+    if(!data) return alert("当前还没有记忆可以导出哦！");
+    // 弹出一个窗口，方便你直接长按全选复制
+    const textArea = document.createElement("textarea");
+    textArea.value = data;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        alert("记忆已自动复制到剪贴板！请去微信或备忘录粘贴保存。");
+    } catch (err) {
+        prompt("请全选复制下方的代码并保存：", data);
+    }
+    document.body.removeChild(textArea);
+};
 
+// 记忆注入功能
+const importData = () => {
+    const json = prompt("请在这里粘贴你之前保存的记忆代码：");
+    if (json && json.trim() !== "") {
+        try {
+            JSON.parse(json); // 检查格式对不对
+            localStorage.setItem('LifeOS_V15_Master', json);
+            alert("同步成功！即将重启人生...");
+            location.reload(); 
+        } catch (e) {
+            alert("注入失败：代码格式不对，请确保复制了完整的记忆代码。");
+        }
+    }
+};
                 // 数据持久化
                 onMounted(() => {
                     const s = localStorage.getItem('LifeOS_V15_Master');
@@ -454,7 +489,7 @@
                     activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
                     displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
                     statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低电量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
-                    addTask, toggleTask, confirmWealth, renderChart, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill
+                    addTask, toggleTask, confirmWealth, renderChart, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill,exportData, importData
                 };
             }
         }).mount('#app')
