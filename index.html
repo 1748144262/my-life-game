@@ -414,50 +414,18 @@
                 const addTask = () => { if(newTask.value.name) { todayTasks.value.push({ ...newTask.value, id: Date.now(), done: false }); newTask.value.name = ""; } };
                 
                 const toggleTask = (i) => {
-    const t = todayTasks.value[i]; 
-    t.done = !t.done;
+                    const t = todayTasks.value[i]; t.done = !t.done;
+                    const gain = t.type === '主线' ? 50 : 20; const mult = t.done ? 1 : -1;
+                    if(t.targetType === 'skill') {
+                        const s = skills.value.find(sk => sk.id == t.skillId);
+                        if(s) { 
+                            s.xp += (gain * mult); 
+                            if(t.done) { s.count = (s.count || 0) + 1; s.lastUsed = new Date().toLocaleDateString(); }
+                            attributes.value[s.bindAttr].xp += (gain * mult); 
+                        }
+                    } else { attributes.value[t.targetType].xp += (gain * mult); }
+                };
 
-    // 保留你原有的数值计算
-    const gain = t.type === '主线' ? 50 : 20; 
-    const mult = t.done ? 1 : -1;
-
-    if(t.targetType === 'skill') {
-        const s = skills.value.find(sk => sk.id == t.skillId);
-        if(s) { 
-            // 1. 技能自身 XP 增长
-            s.xp += (gain * mult); 
-
-            if(t.done) { 
-                // 2. 只有在勾选完成时执行
-                s.count = (s.count || 0) + 1; 
-                s.lastUsed = new Date().toLocaleDateString(); 
-
-                // --- 新增：增加自定义的智慧、心情、力量到看板 ---
-                attributes.value.int.xp += (s.plusInt || 0);
-                attributes.value.san.xp += (s.plusSan || 0);
-                attributes.value.str.xp += (s.plusStr || 0);
-
-                // --- 新增：记录 Insight 轨迹 ---
-                if(!s.insights) s.insights = [];
-                s.insights.push({
-                    time: new Date().toLocaleString(),
-                    content: t.content
-                });
-            } else {
-                // 如果是取消勾选，扣除刚才加的自定义属性（防止刷分）
-                attributes.value.int.xp -= (s.plusInt || 0);
-                attributes.value.san.xp -= (s.plusSan || 0);
-                attributes.value.str.xp -= (s.plusStr || 0);
-            }
-
-            // 3. 保留你原有的绑定属性 XP 增加
-            attributes.value[s.bindAttr].xp += (gain * mult); 
-        }
-    } else { 
-        // 处理非技能类的普通属性任务
-        attributes.value[t.targetType].xp += (gain * mult); 
-    }
-};
                 const confirmWealth = () => {
                     const lastTotal = user.value.wealth;
                     user.value.wealth = tempTotalWealth.value;
@@ -594,23 +562,7 @@
                         .forEach(key => result[key] = history.value[key]);
                     return result;
                 });
-                const addSkill = () => { 
-    const n = prompt("新技能名称:"); 
-    if(n) {
-        skills.value.push({ 
-            id: Date.now(), 
-            name: n, 
-            xp: 0, 
-            count: 0, 
-            plusInt: 5,  // 默认增加的智慧值
-            plusSan: 2,  // 默认增加的心情值
-            plusStr: 0,  // 默认增加的力量值
-            icon: '💎', 
-            lastUsed: '',
-            insights: [] // 存放关联的任务记录
-        }); 
-    } 
-};
+                const addSkill = () => { const n = prompt("新技能名称:"); if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int', icon: '💎', lastUsed: '' }); };
 // 记忆导出功能
 const exportData = () => {
     const data = localStorage.getItem('LifeOS_V15_Master');
