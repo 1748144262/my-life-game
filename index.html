@@ -722,8 +722,8 @@ const importData = () => {
                 watch(showWealthChart, (val) => { if(val) renderChart('total'); });
 
                 return {
-                    chartTimeRange, renderChart, activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
-                    displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
+                    chartTimeRange, renderChart, editingSkill, activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
+                    displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus, deleteSkill, 
                     statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低能量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
                     addTask, toggleTask, confirmWealth, renderChart, chartTimeRange, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
     searchQuery, isHistoryOpen, dailyStatus, filteredHistory, deleteHistory
