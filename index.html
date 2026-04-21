@@ -151,45 +151,66 @@
         </section>
 
         <section v-show="activeTab === 'wealth'" class="space-y-4 animate-in slide-in-from-right">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-black italic text-slate-700 uppercase">Wealth Log</h2>
-                <button @click="showWealthChart = !showWealthChart" class="p-2 bg-white rounded-xl shadow-sm text-lg">📈</button>
-            </div>
-
-                    <div v-if="showWealthChart" class="card p-4 animate-in zoom-in border-none shadow-xl">
-    <div class="chart-container"><canvas id="wealthLineChart"></canvas></div>
-    
-    <div class="flex justify-center space-x-3 mt-4">
-        <button @click="renderChart('total')" 
-            class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl transition-all"
-            :class="chartTimeRange === '7days' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
-            📅 近7日趋势
-        </button>
-        <button @click="renderChart('monthly')" 
-            class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-xl transition-all"
-            :class="chartTimeRange === 'monthly' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
-            🗓️ 每月1号趋势
+    <div class="flex justify-between items-center">
+        <h2 class="text-xl font-black italic text-slate-700 uppercase">Wealth Log</h2>
+        <button @click="showWealthChart = !showWealthChart" class="p-2 bg-white rounded-xl shadow-sm text-lg">
+            {{ showWealthChart ? '❌' : '📈' }}
         </button>
     </div>
 
-    <div class="mt-4 pt-3 border-t border-slate-50">
-        <div class="flex items-center justify-between text-[8px] text-slate-300 font-black uppercase mb-1 px-1">
-            <span>Start Date</span>
-            <span>End Date</span>
+    <div class="card p-5 border-none shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-50 pb-2">
+            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Management</span>
+            <div class="text-right">
+                <p class="text-[8px] text-slate-400 uppercase font-bold">Estimated Total</p>
+                <p class="text-lg font-black text-fuchsia-500 tracking-tighter">¥ {{ tempTotalWealth.toLocaleString() }}</p>
+            </div>
         </div>
-        <div class="flex gap-2">
-            <input type="date" v-model="filterStartDate" 
-                class="flex-1 bg-slate-50 border-none rounded-lg p-2 text-[10px] font-bold text-slate-600 focus:ring-1 focus:ring-fuchsia-200">
-            <input type="date" v-model="filterEndDate" 
-                class="flex-1 bg-slate-50 border-none rounded-lg p-2 text-[10px] font-bold text-slate-600 focus:ring-1 focus:ring-fuchsia-200">
-            <button @click="renderChart('custom')" 
-                class="bg-slate-800 text-white px-4 rounded-lg text-[10px] font-black uppercase tracking-tighter hover:bg-fuchsia-600 transition-colors">
-                对比
+        
+        <div class="grid grid-cols-1 gap-3">
+            <div v-for="(val, key) in wealthParts" :key="key" class="flex items-center space-x-3 bg-slate-50/50 p-2 rounded-2xl">
+                <label class="w-24 text-[10px] font-black text-slate-500 pl-2">{{ key }}</label>
+                <input type="number" v-model.number="wealthParts[key]" 
+                    placeholder="输入余额"
+                    class="flex-1 bg-white border-none rounded-xl p-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-fuchsia-100 transition-all">
+            </div>
+        </div>
+        
+        <button @click="confirmWealth" 
+            class="w-full bg-slate-800 text-white text-[11px] font-black py-4 rounded-2xl shadow-xl hover:bg-fuchsia-600 transition-all uppercase tracking-widest">
+            Confirm & Save Today's Total (确认并计入总额)
+        </button>
+    </div>
+
+    <div v-if="showWealthChart" class="card p-4 animate-in zoom-in border-none shadow-xl bg-white/95">
+        <div class="chart-container" style="height: 200px;"><canvas id="wealthLineChart"></canvas></div>
+        
+        <div class="flex justify-center space-x-2 mt-4">
+            <button @click="renderChart('total')" 
+                class="text-[9px] font-black px-3 py-2 rounded-xl transition-all"
+                :class="chartTimeRange === '7days' ? 'bg-fuchsia-500 text-white' : 'bg-slate-100 text-slate-400'">
+                📅 近7日
+            </button>
+            <button @click="renderChart('monthly')" 
+                class="text-[9px] font-black px-3 py-2 rounded-xl transition-all"
+                :class="chartTimeRange === 'monthly' ? 'bg-fuchsia-500 text-white' : 'bg-slate-100 text-slate-400'">
+                🗓️ 每月1号
             </button>
         </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-100">
+            <p class="text-[8px] text-slate-300 font-black uppercase mb-2 text-center tracking-widest">Custom Range Analysis</p>
+            <div class="flex gap-2">
+                <input type="date" v-model="filterStartDate" class="flex-1 bg-slate-50 border-none rounded-lg p-2 text-[10px] font-bold">
+                <input type="date" v-model="filterEndDate" class="flex-1 bg-slate-50 border-none rounded-lg p-2 text-[10px] font-bold">
+                <button @click="renderChart('custom')" 
+                    class="bg-slate-800 text-white px-4 rounded-lg text-[10px] font-black">
+                    对比
+                </button>
+            </div>
+        </div>
     </div>
-</div>
-        </section>
+</section>
 
         <section v-show="activeTab === 'history'" class="space-y-4 animate-in slide-in-from-right">
             <h2 class="text-xl font-black italic text-slate-700">CHRONICLE</h2>
@@ -335,12 +356,18 @@
                 });
 
                 // 资产逻辑
-                const wealthParts = ref({ ali: 0, bank: 0, cmb: 0, other: 0, wechat: 0 });
-                const wealthLabel = { ali: '支付宝理财', bank: '银行存款', cmb: '招商理财', other: '其他账户', wechat: '微信余额' };
-                const wealthHistory = ref([]);
-                const showWealthChart = ref(false);
-                const chartTimeRange = ref('week'); // 默认显示一周
-                let wealthChart = null;
+                const wealthParts = ref({
+    "支付宝理财": 0,
+    "银行存款": 0,
+    "招商理财": 0,
+    "其他理财": 0,
+    "微信余额": 0
+});
+
+// 计算实时总额：自动把上面五项加起来，不直接修改，仅供预览
+const tempTotalWealth = computed(() => {
+    return Object.values(wealthParts.value).reduce((a, b) => a + (Number(b) || 0), 0);
+});
 
                 // 技能逻辑
                 const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int', icon: '🧠', lastUsed: '' }]);
@@ -423,17 +450,26 @@
                 };
 
                 const confirmWealth = () => {
-                    const lastTotal = user.value.wealth;
-                    user.value.wealth = tempTotalWealth.value;
-                    wealthHistory.value.push({
-                        date: new Date().toLocaleDateString(),
-                        total: user.value.wealth,
-                        change: user.value.wealth - lastTotal,
-                        parts: { ...wealthParts.value }
-                    });
-                    alert("存档成功！");
-                    if(showWealthChart.value) renderChart('total');
-                };
+    const today = new Date().toLocaleDateString(); // 获取日期
+    const total = tempTotalWealth.value; // 获取当前自动计算的总额
+    
+    // 构造今天的历史记录
+    const entry = {
+        date: today,
+        total: total,
+        details: { ...wealthParts.value } // 同时也记录下各部分的明细
+    };
+
+    // 存入历史数组（如果今天已经记过了，就更新今天的）
+    const index = wealthHistory.value.findIndex(h => h.date === today);
+    if(index > -1) {
+        wealthHistory.value[index] = entry;
+    } else {
+        wealthHistory.value.push(entry);
+    }
+
+    alert(`确认成功！今日总额 ¥${total.toLocaleString()} 已记入历史。`);
+};
 
                 const renderChart = (mode) => {
     // 1. 确定我们要看哪种模式：7天、每月1号、还是自定义
