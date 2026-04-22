@@ -264,4 +264,169 @@
             ];
             const user = ref({ title: '觉醒者', wealth: 0, status: '正常' });
             const attributes = ref({
-                int: { name: '智慧 INT
+                int: { name: '智慧 INT', xp: 0, color: 'bg-indigo-400' },
+                str: { name: '力量 STR', xp: 0, color: 'bg-rose-400' },
+                san: { name: '心情 SAN', xp: 0, color: 'bg-amber-400' }
+            });
+
+            const wealthParts = ref({ ali: 0, bank: 0, cmb: 0, other: 0, wechat: 0 });
+            const wealthLabel = { ali: '支付宝理财', bank: '银行存款', cmb: '招商理财', other: '其他账户', wechat: '微信余额' };
+            const wealthHistory = ref([]);
+            const showWealthChart = ref(false);
+            
+            const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int', icon: '🧠', lastUsed: '' }]);
+            const editingSkill = ref(null);
+
+            const todayTasks = ref([]);
+            const newTask = ref({ name: '', targetType: 'skill', skillId: 1, type: '主线' });
+
+            const wishes = ref([]);
+            const wishTab = ref('active');
+            const editingWish = ref(null);
+
+            const history = ref({});
+            const tempNote = ref("");
+            const isHistoryOpen = ref(false);
+            const viewYear = ref(new Date().getFullYear());
+            const viewMonth = ref(new Date().getMonth() + 1);
+
+            // 计算属性
+            const tempTotalWealth = computed(() => Object.values(wealthParts.value).reduce((s, n) => s + (parseFloat(n) || 0), 0));
+            const activeWishes = computed(() => wishes.value.filter(w => !w.done));
+            const doneWishes = computed(() => wishes.value.filter(w => w.done));
+            const displayAttributes = computed(() => {
+                const res = {};
+                Object.keys(attributes.value).forEach(k => {
+                    const xp = attributes.value[k].xp;
+                    res[k] = { name: attributes.value[k].name, valDisplay: 'Lv.' + (Math.floor(xp / 1000) + 1), percent: (xp % 1000) / 10, color: attributes.value[k].color };
+                });
+                res['wealth'] = { name: '资产余额', valDisplay: '￥' + user.value.wealth.toLocaleString(), percent: 100, color: 'bg-fuchsia-400' };
+                return res;
+            });
+            const daysInViewMonth = computed(() => new Date(viewYear.value, viewMonth.value, 0).getDate());
+            const firstDayOffset = computed(() => {
+                let first = new Date(viewYear.value, viewMonth.value - 1, 1).getDay();
+                return first === 0 ? 6 : first - 1;
+            });
+            const weeklySignStatus = computed(() => {
+                const statuses = []; const today = new Date();
+                for(let i=0; i<7; i++) {
+                    const d = new Date(today); d.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1) + i);
+                    const k = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+                    statuses.push(!!history.value[k]?.signed);
+                }
+                return statuses;
+            });
+            const filteredHistory = computed(() => {
+                const result = {};
+                Object.keys(history.value).filter(k => history.value[k].type !== '签到').sort((a,b)=>b.localeCompare(a)).forEach(k => result[k]=history.value[k]);
+                return result;
+            });
+
+            // 方法 - 任务
+            const addTask = () => { if(newTask.value.name) { todayTasks.value.push({ ...newTask.value, id: Date.now(), done: false }); newTask.value.name = ""; } };
+            const toggleTask = (i) => {
+                const t = todayTasks.value[i]; t.done = !t.done;
+                const gain = t.type === '主线' ? 50 : 20; const mult = t.done ? 1 : -1;
+                
+                if(t.targetType === 'skill') {
+                    const s = skills.value.find(sk => sk.id == t.skillId);
+                    if(s) {
+                        s.xp += (gain * mult);
+                        if(t.done) { 
+                            s.count = (s.count || 0) + 1; s.lastUsed = new Date().toLocaleDateString(); 
+                            // 额外奖励机制：INT+50, SAN+80
+                            attributes.value.int.xp += 50;
+                            attributes.value.san.xp += 80;
+                        } else {
+                            attributes.value.int.xp -= 50;
+                            attributes.value.san.xp -= 80;
+                        }
+                        attributes.value[s.bindAttr].xp += (gain * mult);
+                    }
+                } else { 
+                    attributes.value[t.targetType].xp += (gain * mult); 
+                }
+            };
+
+            // 方法 - 技能系统增强
+            const addSkill = () => { const n = prompt("新技能名称:"); if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int', icon: '💎', lastUsed: '' }); };
+            const openSkillEditor = (s) => { editingSkill.value = { ...s }; };
+            const saveSkill = () => {
+                const idx = skills.value.findIndex(s => s.id === editingSkill.value.id);
+                if(idx !== -1) skills.value[idx] = { ...editingSkill.value };
+                editingSkill.value = null;
+            };
+            const deleteSkill = (id) => { if(confirm("确定删除该技能吗？相关任务将失去关联。")) { skills.value = skills.value.filter(s => s.id !== id); editingSkill.value = null; } };
+
+            // 方法 - 资产
+            const confirmWealth = () => {
+                user.value.wealth = tempTotalWealth.value;
+                wealthHistory.value.push({ date: new Date().toLocaleDateString(), total: user.value.wealth, parts: { ...wealthParts.value } });
+                alert("存档成功！");
+            };
+
+            // 方法 - 愿望增强
+            const addWish = () => { editingWish.value = { title: '', price: 0, sanExp: 100, colorClass: 'color-purple', done: false, desc: '', condition: '' }; };
+            const editWish = (w) => { editingWish.value = { ...w }; };
+            const saveWish = () => {
+                if(!editingWish.value.id) { editingWish.value.id = Date.now(); wishes.value.push(editingWish.value); }
+                else { const idx = wishes.value.findIndex(w => w.id === editingWish.value.id); wishes.value[idx] = editingWish.value; }
+                editingWish.value = null;
+            };
+            const toggleWish = (w) => {
+                w.done = !w.done;
+                if(w.done) {
+                    w.doneDate = new Date().toLocaleDateString();
+                    attributes.value.san.xp += (w.sanExp || 100);
+                    history.value[`${new Date().toLocaleString()} (成就)`] = { note: `达成愿望: ${w.title}`, type: '愿望实现', signed: true };
+                }
+            };
+            const deleteWish = (id) => { wishes.value = wishes.value.filter(w => w.id !== id); editingWish.value = null; };
+
+            // 其他通用方法
+            const signDay = (d) => {
+                const k = `${viewYear.value}-${viewMonth.value}-${d}`;
+                if(!history.value[k]) history.value[k] = { signed: true, note: '打卡', type: '签到' };
+                else history.value[k].signed = !history.value[k].signed;
+            };
+            const saveNote = () => {
+                if(!tempNote.value.trim()) return alert("写点什么吧~");
+                history.value[new Date().toLocaleString()] = { note: tempNote.value, type: '复盘', signed: true };
+                tempNote.value = ""; alert("已记入历史书！");
+            };
+            const deleteHistory = (k) => { if(confirm("确定抹除记忆？")) delete history.value[k]; };
+            const exportData = () => { const d = localStorage.getItem('LifeOS_V15_Master'); prompt("请全选复制记忆代码：", d); };
+            const importData = () => { const j = prompt("请注入记忆代码："); if(j){ localStorage.setItem('LifeOS_V15_Master', j); location.reload(); } };
+
+            onMounted(() => {
+                const s = localStorage.getItem('LifeOS_V15_Master');
+                if(s) {
+                    const d = JSON.parse(s);
+                    user.value = d.user; attributes.value = d.attributes; skills.value = d.skills || [];
+                    wealthParts.value = d.wealthParts || wealthParts.value;
+                    wealthHistory.value = d.wealthHistory || [];
+                    todayTasks.value = d.todayTasks || [];
+                    history.value = d.history || {}; wishes.value = d.wishes || [];
+                }
+            });
+
+            watch([user, attributes, skills, wealthHistory, wealthParts, todayTasks, wishes, history], () => {
+                localStorage.setItem('LifeOS_V15_Master', JSON.stringify({
+                    user: user.value, attributes: attributes.value, skills: skills.value,
+                    wealthHistory: wealthHistory.value, wealthParts: wealthParts.value,
+                    todayTasks: todayTasks.value, history: history.value, wishes: wishes.value
+                }));
+            }, { deep: true });
+
+            return {
+                activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, newTask, tempNote, editingWish, editingSkill, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
+                displayAttributes, tempTotalWealth, activeWishes, doneWishes, filteredHistory, weeklySignStatus, isHistoryOpen,
+                statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低能量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
+                addTask, toggleTask, confirmWealth, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, openSkillEditor, saveSkill, deleteSkill, exportData, importData, deleteHistory
+            };
+        }
+    }).mount('#app')
+</script>
+</body>
+</html>
