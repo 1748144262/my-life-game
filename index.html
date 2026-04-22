@@ -22,10 +22,6 @@
         .day-signed { background: #d946ef !important; color: white; font-weight: bold; border: none; }
         .color-pink { background: #fdf2f8; } .color-green { background: #f0fdf4; }
         .color-blue { background: #eff6ff; } .color-purple { background: #f5f3ff; }
-        /* 确保备注文字在卡片中整齐显示 */
-.line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-/* 愿望编辑器背景 */
-.bg-white\/98 { background-color: rgba(255, 255, 255, 0.98); }
     </style>
 </head>
 <body class="bg-dreamy">
@@ -129,61 +125,29 @@
         </section>
 
         <section v-show="activeTab === 'wish'" class="space-y-4 animate-in slide-in-from-right">
-    <div class="flex justify-between items-center">
-        <h2 class="text-xl font-black italic text-slate-700">WISHES</h2>
-        <div class="flex bg-white/60 p-1 rounded-xl text-[10px] font-bold shadow-sm">
-            <button @click="wishTab='active'" :class="wishTab==='active'?'bg-white text-fuchsia-500 shadow-sm':''" class="px-4 py-1.5 rounded-lg transition-all">未实现</button>
-            <button @click="wishTab='done'" :class="wishTab==='done'?'bg-white text-fuchsia-500 shadow-sm':''" class="px-4 py-1.5 rounded-lg transition-all">已达成</button>
-        </div>
-    </div>
-
-    <div v-if="wishTab==='active'" class="grid grid-cols-2 gap-3">
-        <div v-for="w in activeWishes" :key="w.id" @click="editExistingWish(w)" class="card p-4 aspect-square flex flex-col border-none shadow-sm cursor-pointer" :class="w.colorClass || 'color-pink'">
-            <div class="flex justify-between items-start mb-2">
-                <span class="text-xs font-black text-slate-800 leading-tight flex-1 mr-2">{{ w.title }}</span>
-                <input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500 shrink-0">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-black italic text-slate-700">WISHES</h2>
+                <div class="flex bg-white/60 p-1 rounded-xl text-[10px] font-bold shadow-sm">
+                    <button @click="wishTab='active'" :class="wishTab==='active'?'bg-white text-fuchsia-500 shadow-sm':''" class="px-4 py-1.5 rounded-lg transition-all">未实现</button>
+                    <button @click="wishTab='done'" :class="wishTab==='done'?'bg-white text-fuchsia-500 shadow-sm':''" class="px-4 py-1.5 rounded-lg transition-all">已达成</button>
+                </div>
             </div>
-            <div v-if="w.note" class="p-2 bg-white/60 backdrop-blur-sm rounded-lg text-[10px] text-slate-700 line-clamp-3 leading-tight border border-white/30 italic">
-                {{ w.note }}
+            <div v-if="wishTab==='active'" class="grid grid-cols-2 gap-3">
+                <div v-for="w in activeWishes" :key="w.id" @click="editWish(w)" class="card p-4 aspect-square flex flex-col justify-between border-none shadow-sm" :class="w.colorClass">
+                    <div class="flex justify-between"><span class="text-xs font-black">{{ w.title }}</span><input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500"></div>
+                    <div class="text-[9px] font-mono text-slate-400">EST. ￥{{ w.price }}</div>
+                </div>
+                <button @click="addWish" class="card aspect-square border-2 border-dashed border-fuchsia-100 text-fuchsia-200 text-3xl flex items-center justify-center">+</button>
             </div>
-            <div class="mt-auto text-[9px] font-mono font-bold text-slate-500">￥{{ w.price }}</div>
-        </div>
-        <button @click="addWish" class="card aspect-square border-2 border-dashed border-fuchsia-100 text-fuchsia-200 text-3xl flex items-center justify-center">+</button>
-    </div>
-
-    <div v-else class="space-y-3">
-        <div v-for="w in doneWishes" :key="w.id" class="card p-4 flex justify-between items-center bg-white/40 border-none">
-            <div>
-                <div class="text-xs font-bold text-slate-400 line-through">{{ w.title }}</div>
-                <div class="text-[8px] text-slate-300 mt-1">达成: {{ w.doneDate }}</div>
+            <div v-else class="space-y-3">
+                <div v-for="w in doneWishes" :key="w.id" class="card p-4 flex justify-between items-center bg-white/40 border-none">
+                    <div>
+                        <div class="text-xs font-bold text-slate-400 line-through">{{ w.title }}</div>
+                        <div class="text-[8px] text-slate-300 mt-1">达成: {{ w.doneDate }}</div>
+                    </div>
+                    <div class="text-[10px] font-bold text-emerald-500">+{{ w.sanExp }} SAN</div>
+                </div>
             </div>
-            <div class="text-[10px] font-bold text-emerald-500">+{{ w.sanExp }} SAN</div>
-        </div>
-    </div>
-</section>
-
-<div v-if="editingWish" class="fixed inset-0 bg-white/98 backdrop-blur-md z-50 p-8 flex flex-col animate-in zoom-in">
-    <div class="flex justify-between items-center mb-8">
-        <h2 class="text-xl font-black italic">WISH EDITOR</h2>
-        <button @click="editingWish = null" class="text-2xl text-slate-300">✕</button>
-    </div>
-    <div class="space-y-6">
-        <div class="flex gap-3">
-            <div v-for="c in ['pink','green','blue','purple']" :key="c" @click="editingWish.colorClass = 'color-'+c" class="w-8 h-8 rounded-full border-2" :class="['color-'+c, editingWish.colorClass === 'color-'+c ? 'border-fuchsia-500' : 'border-transparent']"></div>
-        </div>
-        <input v-model="editingWish.title" placeholder="愿望名称" class="w-full text-xl font-black border-b-2 p-2 outline-none border-fuchsia-50 bg-transparent text-slate-800">
-        <div class="space-y-2">
-            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">愿望备注 / 详情</label>
-            <textarea v-model="editingWish.note" placeholder="为什么想要这个？写下你的原动力..." class="w-full bg-slate-100/50 rounded-2xl p-4 text-sm h-32 outline-none text-slate-700 focus:bg-white focus:ring-1 ring-fuchsia-100 transition-all"></textarea>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-            <div><label class="text-[9px] font-black text-slate-300 uppercase">目标预算</label><input v-model.number="editingWish.price" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
-            <div><label class="text-[9px] font-black text-slate-300 uppercase">SAN 奖励</label><input v-model.number="editingWish.sanExp" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
-        </div>
-        <button @click="saveWish" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xs shadow-xl uppercase tracking-widest">Confirm Wish</button>
-        <button v-if="editingWish.id" @click="deleteWish(editingWish.id)" class="w-full text-rose-400 font-bold text-xs">Delete Wish</button>
-    </div>
-</div>
         </section>
 
         <section v-show="activeTab === 'wealth'" class="space-y-4 animate-in slide-in-from-right">
@@ -392,55 +356,10 @@
                 const todayTasks = ref([]);
                 const newTask = ref({ name: '', targetType: 'skill', skillId: 1, type: '主线' });
 
-                // 愿望逻辑 (这些是核心变量，必须保留)
-const wishes = ref([]);
-const wishTab = ref('active');
-const editingWish = ref(null);
-
-// 计算属性 (用于分类显示)
-const activeWishes = computed(() => wishes.value.filter(w => !w.done));
-const doneWishes = computed(() => wishes.value.filter(w => w.done));
-
-// 方法：点击“+”号初始化一个空愿望
-const addWish = () => { 
-    editingWish.value = { 
-        id: null, title: '', price: 0, note: '', 
-        sanExp: 100, colorClass: 'color-pink', done: false 
-    }; 
-};
-
-// 方法：点击卡片进入编辑
-const editExistingWish = (w) => { 
-    editingWish.value = JSON.parse(JSON.stringify(w)); 
-};
-
-// 方法：保存
-const saveWish = () => {
-    if(!editingWish.value.title) return;
-    if(!editingWish.value.id) {
-        editingWish.value.id = Date.now();
-        wishes.value.push({...editingWish.value});
-    } else {
-        const idx = wishes.value.findIndex(w => w.id === editingWish.value.id);
-        if (idx !== -1) wishes.value[idx] = {...editingWish.value};
-    }
-    editingWish.value = null;
-};
-
-// 方法：勾选达成
-const toggleWish = (w) => {
-    w.done = true;
-    w.doneDate = new Date().toLocaleDateString();
-    attributes.value.san.xp += (w.sanExp || 100);
-};
-
-// 方法：删除
-const deleteWish = (id) => {
-    if(confirm("确定放弃这个愿望吗？")) {
-        wishes.value = wishes.value.filter(w => w.id !== id);
-        editingWish.value = null;
-    }
-};
+                // 愿望逻辑
+                const wishes = ref([]);
+                const wishTab = ref('active');
+                const editingWish = ref(null);
 
                 // 复盘逻辑
                 const history = ref({});
@@ -585,6 +504,23 @@ const deleteWish = (id) => {
                     });
                 };
 
+                const addWish = () => { editingWish.value = { title: '', price: 0, sanExp: 100, colorClass: 'color-purple', done: false }; };
+                const editWish = (w) => { editingWish.value = { ...w }; };
+                const saveWish = () => {
+                    if(!editingWish.value.id) { editingWish.value.id = Date.now(); wishes.value.push(editingWish.value); }
+                    else { const idx = wishes.value.findIndex(w => w.id === editingWish.value.id); wishes.value[idx] = editingWish.value; }
+                    editingWish.value = null;
+                };
+                const toggleWish = (w) => {
+                    w.done = !w.done;
+                    if(w.done) {
+                        w.doneDate = new Date().toLocaleDateString();
+                        attributes.value.san.xp += (w.sanExp || 100);
+                        history.value[`${new Date().toLocaleString()} (成就)`] = { note: `达成愿望: ${w.title}`, type: '愿望实现', signed: true };
+                    }
+                };
+                const deleteWish = (id) => { wishes.value = wishes.value.filter(w => w.id !== id); editingWish.value = null; };
+
                 const signDay = (d) => {
                     const k = `${viewYear.value}-${viewMonth.value}-${d}`;
                     if(!history.value[k]) history.value[k] = { signed: true, note: '打卡', type: '签到' };
@@ -683,7 +619,7 @@ const importData = () => {
 
                 return {
                     chartTimeRange, renderChart, activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
-                    displayAttributes, tempTotalWealth, editExistingWish, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
+                    displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
                     statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低能量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
                     addTask, toggleTask, confirmWealth, renderChart, chartTimeRange, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
     searchQuery, isHistoryOpen, dailyStatus, filteredHistory, deleteHistory
