@@ -136,25 +136,24 @@
                 <div v-for="w in activeWishes" :key="w.id" @click="editWish(w)" class="card p-4 aspect-square flex flex-col justify-between border-none shadow-sm" :class="w.colorClass">
                     <div class="flex justify-between"><span class="text-xs font-black">{{ w.title }}</span>
                         
-                        <div v-for="w in activeWishes" :key="w.id" @click="editWish(w)" class="card p-4 aspect-square flex flex-col justify-between border-none shadow-sm" :class="w.colorClass">
-    <div class="flex flex-col h-full">
-        <div class="flex justify-between items-start">
-            <span class="text-xs font-black">{{ w.title }}</span>
-            <input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500">
-        </div>
-
-        <div class="mt-2 space-y-1">
-            <div v-if="w.condition" class="text-[9px] font-bold text-fuchsia-600 bg-white/50 px-1.5 py-0.5 rounded shadow-sm inline-block">
-                🎯 {{ w.condition }}
-            </div>
-            <div v-if="w.note" class="text-[9px] text-slate-500 leading-tight italic break-all line-clamp-2">
-                {{ w.note }}
-            </div>
-        </div>
-        </div>
-
-    <div class="text-[9px] font-mono text-slate-400">EST. ￥{{ w.price }}</div>
+                       <div class="flex justify-between">
+    <span class="text-xs font-black">{{ w.title }}</span>
+    
+    <div class="flex flex-col"> <input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500">
+    </div>
 </div>
+
+<div class="mt-1 space-y-1">
+    <div v-if="w.condition" class="text-[9px] font-bold text-fuchsia-600 bg-white/60 px-1 rounded inline-block">
+        🎯 {{ w.condition }}
+    </div>
+    <div v-if="w.note" class="text-[9px] text-slate-500 italic leading-tight">
+        {{ w.note }}
+    </div>
+</div>
+
+<div class="text-[9px] font-mono text-slate-400">EST. ￥{{ w.price }}</div>
+                </div>
                 <button @click="addWish" class="card aspect-square border-2 border-dashed border-fuchsia-100 text-fuchsia-200 text-3xl flex items-center justify-center">+</button>
             </div>
             <div v-else class="space-y-3">
@@ -377,6 +376,7 @@
 
                 // 技能逻辑
                 const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int', icon: '🧠', lastUsed: '' }]);
+                const selectedSkill = ref(null);
                 const showSkillChartModal = ref(false);
 
                 // 任务逻辑
