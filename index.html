@@ -26,6 +26,7 @@
 </head>
 <body class="bg-dreamy">
     <div id="app" v-cloak class="max-w-md mx-auto px-4 pt-6">
+
         <section v-show="activeTab === 'home'" class="space-y-4 animate-in fade-in">
             <div class="flex items-center justify-between px-1">
                 <div class="flex items-center space-x-3">
@@ -38,17 +39,16 @@
                         </div>
                     </div>
                 </div>
+               <div class="flex space-x-2 mb-2">
+    <button @click="exportData" class="flex-1 bg-white/80 py-2 rounded-xl text-[10px] font-black text-slate-500 shadow-sm uppercase tracking-widest">📤 导出记忆</button>
+    <button @click="importData" class="flex-1 bg-white/80 py-2 rounded-xl text-[10px] font-black text-fuchsia-500 shadow-sm uppercase tracking-widest">📥 注入记忆</button>
+</div>
                 <div class="flex space-x-1.5 bg-white/60 p-2 rounded-2xl backdrop-blur-sm shadow-sm">
                     <div v-for="(signed, d) in weeklySignStatus" :key="d" class="flex flex-col items-center">
                         <div class="w-1.5 h-1.5 rounded-full" :class="signed ? 'bg-fuchsia-400' : 'bg-slate-200'"></div>
                         <span class="text-[7px] text-slate-400 mt-1 uppercase">{{ ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d] }}</span>
                     </div>
                 </div>
-            </div>
-
-            <div class="flex space-x-2">
-                <button @click="exportData" class="flex-1 bg-white/80 py-2 rounded-xl text-[10px] font-black text-slate-500 shadow-sm uppercase tracking-widest">📤 导出记忆</button>
-                <button @click="importData" class="flex-1 bg-white/80 py-2 rounded-xl text-[10px] font-black text-fuchsia-500 shadow-sm uppercase tracking-widest">📥 注入记忆</button>
             </div>
 
             <div class="card p-5 grid grid-cols-2 gap-4 border-none shadow-xl shadow-fuchsia-100/40">
@@ -84,7 +84,7 @@
                     <button @click="todayTasks.splice(i,1)" class="text-slate-200 hover:text-rose-400 transition-colors">✕</button>
                 </div>
             </div>
-
+            
             <div class="card p-5 space-y-3 border-none shadow-xl shadow-fuchsia-100/20">
                 <input v-model="newTask.name" placeholder="设定一个新目标..." class="w-full text-sm border-b border-slate-100 p-2 outline-none focus:border-fuchsia-300 transition-colors bg-transparent">
                 <div class="grid grid-cols-2 gap-2">
@@ -105,7 +105,10 @@
         <section v-show="activeTab === 'skill'" class="space-y-4 animate-in slide-in-from-right">
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-black italic text-slate-700 uppercase">Skill Tree</h2>
-                <button @click="addSkill" class="px-3 py-1.5 bg-fuchsia-500 text-white rounded-xl text-[10px] font-bold shadow-lg shadow-fuchsia-200">+ 添加</button>
+                <div class="flex space-x-2">
+                    <button @click="showSkillChartModal = true" class="p-2 bg-white rounded-xl shadow-sm text-lg">📊</button>
+                    <button @click="addSkill" class="px-3 py-1.5 bg-fuchsia-500 text-white rounded-xl text-[10px] font-bold shadow-lg shadow-fuchsia-200">+ 添加</button>
+                </div>
             </div>
             <div class="space-y-3">
                 <div v-for="s in skills" :key="s.id" @click="selectedSkill = s" class="card p-4 border-none shadow-sm flex items-center space-x-4 active:scale-95 transition-transform">
@@ -152,22 +155,33 @@
                 <h2 class="text-xl font-black italic text-slate-700 uppercase">Wealth Log</h2>
                 <button @click="showWealthChart = !showWealthChart" class="p-2 bg-white rounded-xl shadow-sm text-lg">📈</button>
             </div>
-            
+
             <div v-if="showWealthChart" class="card p-4 animate-in zoom-in border-none shadow-xl">
                 <div class="chart-container"><canvas id="wealthLineChart"></canvas></div>
-                <div class="flex flex-wrap justify-around gap-2 mt-4 border-t border-slate-50 pt-3">
-                    <button @click="renderChart('total')" class="text-[9px] font-bold px-3 py-1 bg-slate-100 rounded-lg">总资产趋势</button>
-                    <button @click="renderChart('ali')" class="text-[9px] font-bold px-3 py-1 bg-blue-50 text-blue-500 rounded-lg">支付宝趋势</button>
-                    <button @click="renderChart('bank')" class="text-[9px] font-bold px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg">银行存款趋势</button>
+                <div class="flex justify-around mt-4">
+                    <div class="flex justify-around mt-4">
+    <button @click="renderChart('total')" class="text-[9px] font-bold px-3 py-1 bg-slate-100 rounded-lg">总资产</button>
+    <button @click="renderChart('alipay')" class="text-[9px] font-bold px-3 py-1 bg-blue-50 text-blue-500 rounded-lg">支付宝理财</button>
+    <button @click="renderChart('others')" class="text-[9px] font-bold px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg">银行存款</button>
+</div>
+
+<div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
+    <button @click="chartTimeRange = 'recent'; renderChart('total')" ...>最近记录</button>
+    <button @click="chartTimeRange = 'monthly'; renderChart('total')" ...>每月1号趋势</button>
+</div>
                 </div>
-                <div class="flex justify-center space-x-4 mt-3">
-                    <button @click="chartTimeRange = 'week'; renderChart('total')" 
-                        class="text-[8px] font-black uppercase px-2 py-1 rounded-md"
-                        :class="chartTimeRange === 'week' ? 'bg-fuchsia-500 text-white' : 'bg-slate-50 text-slate-400'">7 Days</button>
-                    <button @click="chartTimeRange = 'monthly'; renderChart('total')" 
-                        class="text-[8px] font-black uppercase px-2 py-1 rounded-md"
-                        :class="chartTimeRange === 'monthly' ? 'bg-fuchsia-500 text-white' : 'bg-slate-50 text-slate-400'">Monthly</button>
-                </div>
+                <div class="flex justify-center space-x-4 mt-3 border-t border-slate-50 pt-3">
+    <button @click="chartTimeRange = 'week'; renderChart('total')" 
+        class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
+        :class="chartTimeRange === 'week' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
+        7 Days
+    </button>
+    <button @click="chartTimeRange = 'month'; renderChart('total')" 
+        class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all"
+        :class="chartTimeRange === 'month' ? 'bg-fuchsia-500 text-white shadow-md' : 'bg-slate-50 text-slate-400'">
+        30 Days
+    </button>
+</div>
             </div>
 
             <div class="card p-6 space-y-4 shadow-xl shadow-fuchsia-100/30 border-none">
@@ -185,6 +199,7 @@
 
         <section v-show="activeTab === 'history'" class="space-y-4 animate-in slide-in-from-right">
             <h2 class="text-xl font-black italic text-slate-700">CHRONICLE</h2>
+            
             <div class="card p-4 border-none shadow-sm">
                 <div class="flex justify-between items-center mb-4 text-[10px] font-black px-1 uppercase text-slate-400">
                     <span>{{ viewYear }} / {{ viewMonth }}</span>
@@ -195,45 +210,63 @@
                     <div v-for="d in daysInViewMonth" :key="d" @click="signDay(d)" class="day-cell" :class="{'day-signed': history[`${viewYear}-${viewMonth}-${d}`]?.signed}">{{ d }}</div>
                 </div>
             </div>
-
+            
             <div class="card p-4 border-none shadow-sm space-y-3">
+                <div class="text-[9px] font-black text-slate-300 uppercase tracking-widest text-center">Current Energy Status</div>
                 <div class="flex justify-around py-2">
-                    <button v-for="s in ['积极','正常','低能量']" :key="s" @click="dailyStatus = s"
+                    <button v-for="s in ['积极','正常','低能量']" :key="s" @click="dailyStatus = s" 
                         class="flex items-center space-x-2 px-4 py-2 rounded-2xl transition-all border shadow-sm"
-                        :class="dailyStatus === s ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-400 border-slate-50'">
+                        :class="dailyStatus === s ? 'bg-slate-800 text-white border-slate-800 scale-105' : 'bg-white text-slate-400 border-slate-50'">
                         <span class="w-2.5 h-2.5 rounded-full" :class="{'积极':'bg-emerald-400','正常':'bg-amber-400','低能量':'bg-rose-400'}[s]"></span>
                         <span class="text-xs font-bold">{{ s }}</span>
                     </button>
                 </div>
                 <textarea v-model="tempNote" class="w-full text-xs bg-slate-50/50 p-4 rounded-2xl h-24 outline-none border border-transparent focus:border-fuchsia-100 transition-all" placeholder="写下今日复盘记忆..."></textarea>
-                <button @click="saveNote" class="w-full bg-fuchsia-500 text-white text-[10px] font-black py-4 rounded-2xl shadow-lg uppercase">Save Memory</button>
+                <button @click="saveNote" class="w-full bg-fuchsia-500 text-white text-[10px] font-black py-4 rounded-2xl shadow-lg shadow-fuchsia-100 uppercase tracking-widest">Save Memory</button>
             </div>
 
-            <button @click="isHistoryOpen = !isHistoryOpen" class="w-full py-4 bg-white/60 backdrop-blur-sm rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest flex justify-center items-center space-x-2">
-                <span>{{ isHistoryOpen ? '📖 Close Chronicle' : '📘 Open Chronicle' }}</span>
-            </button>
-            <div v-if="isHistoryOpen" class="space-y-3 animate-in fade-in">
-                <input v-model="searchQuery" placeholder="搜索记忆内容..." class="w-full bg-white rounded-2xl p-4 text-xs outline-none shadow-sm">
-                <div v-for="(v, k) in filteredHistory" :key="k" class="card p-5 border-none shadow-sm bg-white/80">
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="text-[9px] font-black bg-slate-100 px-2 py-1 rounded text-slate-500 font-mono">{{ k }}</span>
-                        <button @click="deleteHistory(k)" class="text-[10px] font-black text-rose-300">DELETE</button>
+            <div class="space-y-3 pb-4">
+                <button @click="isHistoryOpen = !isHistoryOpen" class="w-full py-4 bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm text-[10px] font-black text-slate-400 uppercase tracking-widest flex justify-center items-center space-x-2">
+                    <span>{{ isHistoryOpen ? '📖 Close Chronicle' : '📘 Open Chronicle' }}</span>
+                </button>
+
+                <div v-if="isHistoryOpen" class="space-y-3 animate-in fade-in slide-in-from-top-2">
+                    <div class="relative px-1">
+                        <input v-model="searchQuery" placeholder="搜索记忆内容或日期..." class="w-full bg-white border-none rounded-2xl p-4 pl-10 text-xs outline-none shadow-sm focus:ring-1 ring-fuchsia-100">
+                        <span class="absolute left-4 top-4 opacity-30 text-xs">🔍</span>
                     </div>
-                    <p class="text-xs text-slate-600 italic">"{{ v.note }}"</p>
+
+                    <div v-for="(v, k) in filteredHistory" :key="k" class="card p-5 border-none shadow-sm relative group bg-white/80">
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-[9px] font-black bg-slate-100 px-2 py-1 rounded text-slate-500 font-mono">{{ k }}</span>
+                                <div v-if="v.status" class="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-slate-50">
+                                    <div class="w-1.5 h-1.5 rounded-full" :class="{'积极':'bg-emerald-400','正常':'bg-amber-400','低能量':'bg-rose-400'}[v.status]"></div>
+                                    <span class="text-[8px] font-bold text-slate-400">{{ v.status }}</span>
+                                </div>
+                            </div>
+                            <button @click="deleteHistory(k)" class="text-[10px] font-black text-rose-300 hover:text-rose-500 transition-colors px-2 py-1">DELETE</button>
+                        </div>
+                        <p class="text-xs leading-relaxed text-slate-600 italic">"{{ v.note }}"</p>
+                    </div>
+                    
+                    <div v-if="Object.keys(filteredHistory).length === 0" class="text-center py-10 text-slate-300 text-[10px] font-bold uppercase tracking-widest">
+                        No memories found
+                    </div>
                 </div>
             </div>
         </section>
 
-        <div v-if="selectedSkill" class="fixed inset-0 bg-white/95 backdrop-blur-xl z-50 p-8 flex flex-col pt-16 animate-in zoom-in">
+        <div v-if="selectedSkill" class="fixed inset-0 bg-white/90 backdrop-blur-xl z-50 p-8 flex flex-col animate-in zoom-in">
             <div class="flex justify-between items-center mb-8">
-                <button @click="selectedSkill = null" class="text-slate-400 font-black text-xs uppercase">✕ Close</button>
+                <button @click="selectedSkill = null" class="text-slate-400 font-black text-xs uppercase tracking-widest">✕ Close</button>
                 <div class="text-[10px] font-black bg-fuchsia-100 text-fuchsia-500 px-3 py-1 rounded-full uppercase">Insight</div>
             </div>
             <div class="flex-1 space-y-8 overflow-y-auto no-scrollbar">
                 <div class="text-center space-y-2">
                     <div class="text-5xl mb-4">{{ selectedSkill.icon || '🧬' }}</div>
                     <h2 class="text-3xl font-black text-slate-800">{{ selectedSkill.name }}</h2>
-                    <p class="text-sm font-bold text-fuchsia-400 uppercase">Level {{ Math.floor(selectedSkill.xp/1000)+1 }}</p>
+                    <p class="text-sm font-bold text-fuchsia-400 tracking-widest uppercase">Level {{ Math.floor(selectedSkill.xp/1000)+1 }}</p>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="card p-4 bg-fuchsia-50/50 border-none shadow-none">
@@ -245,15 +278,28 @@
                         <div class="text-[10px] font-bold text-slate-600 mt-2">{{ selectedSkill.lastUsed || '从未记录' }}</div>
                     </div>
                 </div>
-                <div class="card p-5 bg-slate-800 text-white border-none shadow-xl flex justify-around">
-                    <div class="text-center"><div class="text-[9px] text-slate-500 mb-1 uppercase">Int Exp</div><div class="text-lg font-mono text-indigo-400">+{{ selectedSkill.xp }}</div></div>
-                    <div class="text-center"><div class="text-[9px] text-slate-500 mb-1 uppercase">San Reward</div><div class="text-lg font-mono text-amber-400">+{{ Math.floor(selectedSkill.xp/5) }}</div></div>
+                <div class="card p-5 bg-slate-800 text-white border-none shadow-xl space-y-4">
+                    <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Core Contribution</div>
+                    <div class="flex justify-around items-center">
+                        <div class="text-center">
+                            <div class="text-[9px] text-slate-500 mb-1">INT</div>
+                            <div class="text-lg font-mono text-indigo-400">+{{ selectedSkill.xp }}</div>
+                        </div>
+                        <div class="h-8 w-[1px] bg-slate-700"></div>
+                        <div class="text-center">
+                            <div class="text-[9px] text-slate-500 mb-1">SAN</div>
+                            <div class="text-lg font-mono text-amber-400">+{{ Math.floor(selectedSkill.xp/5) }}</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div v-if="editingWish" class="fixed inset-0 bg-white/95 backdrop-blur-md z-50 p-8 animate-in fade-in zoom-in">
-            <div class="flex justify-between items-center mb-8"><h2 class="text-xl font-black italic">WISH EDITOR</h2><button @click="editingWish = null" class="text-2xl text-slate-200">✕</button></div>
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-xl font-black italic">WISH EDITOR</h2>
+                <button @click="editingWish = null" class="text-2xl text-slate-200">✕</button>
+            </div>
             <div class="space-y-6">
                 <div class="flex gap-3">
                     <div v-for="c in ['pink','green','blue','purple']" :key="c" @click="editingWish.colorClass = 'color-'+c" class="w-8 h-8 rounded-full border-2" :class="['color-'+c, editingWish.colorClass === 'color-'+c ? 'border-fuchsia-500' : 'border-transparent']"></div>
@@ -293,30 +339,39 @@
                     san: { name: '心情 SAN', xp: 0, color: 'bg-amber-400' }
                 });
 
+                // 资产逻辑
                 const wealthParts = ref({ ali: 0, bank: 0, cmb: 0, other: 0, wechat: 0 });
                 const wealthLabel = { ali: '支付宝理财', bank: '银行存款', cmb: '招商理财', other: '其他账户', wechat: '微信余额' };
                 const wealthHistory = ref([]);
                 const showWealthChart = ref(false);
-                const chartTimeRange = ref('week');
+                const chartTimeRange = ref('week'); // 默认显示一周
                 let wealthChart = null;
 
+                // 技能逻辑
                 const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int', icon: '🧠', lastUsed: '' }]);
                 const selectedSkill = ref(null);
+                const showSkillChartModal = ref(false);
+
+                // 任务逻辑
                 const todayTasks = ref([]);
                 const newTask = ref({ name: '', targetType: 'skill', skillId: 1, type: '主线' });
 
+                // 愿望逻辑
                 const wishes = ref([]);
                 const wishTab = ref('active');
                 const editingWish = ref(null);
+
+                // 复盘逻辑
                 const history = ref({});
                 const tempNote = ref("");
-                const searchQuery = ref("");
-                const isHistoryOpen = ref(false);
-                const dailyStatus = ref('正常');
+                const searchQuery = ref(""); // 搜索关键词
+                const isHistoryOpen = ref(false); // 历史书折叠状态
+                const dailyStatus = ref('正常'); // 复盘选择的状态
                 const now = new Date();
                 const viewYear = ref(now.getFullYear());
                 const viewMonth = ref(now.getMonth() + 1);
 
+                // 计算属性
                 const tempTotalWealth = computed(() => Object.values(wealthParts.value).reduce((s, n) => s + (parseFloat(n) || 0), 0));
                 const tasksDoneToday = computed(() => todayTasks.value.filter(t => t.done).length);
                 const activeWishes = computed(() => wishes.value.filter(w => !w.done));
@@ -332,10 +387,16 @@
                     return res;
                 });
 
+                const sortedHistory = computed(() => {
+                    const sorted = {};
+                    Object.keys(history.value).sort((a,b) => b.localeCompare(a)).forEach(key => sorted[key] = history.value[key]);
+                    return sorted;
+                });
+
                 const daysInViewMonth = computed(() => new Date(viewYear.value, viewMonth.value, 0).getDate());
-                const firstDayOffset = computed(() => {
-                    let first = new Date(viewYear.value, viewMonth.value - 1, 1).getDay();
-                    return first === 0 ? 6 : first - 1;
+                const firstDayOffset = computed(() => { 
+                    let first = new Date(viewYear.value, viewMonth.value - 1, 1).getDay(); 
+                    return first === 0 ? 6 : first - 1; 
                 });
 
                 const weeklySignStatus = computed(() => {
@@ -348,22 +409,18 @@
                     return statuses;
                 });
 
-                const addTask = () => { 
-                    if(newTask.value.name) { 
-                        todayTasks.value.push({ ...newTask.value, id: Date.now(), done: false }); 
-                        newTask.value.name = ""; 
-                    } 
-                };
-
+                // 方法
+                const addTask = () => { if(newTask.value.name) { todayTasks.value.push({ ...newTask.value, id: Date.now(), done: false }); newTask.value.name = ""; } };
+                
                 const toggleTask = (i) => {
                     const t = todayTasks.value[i]; t.done = !t.done;
                     const gain = t.type === '主线' ? 50 : 20; const mult = t.done ? 1 : -1;
                     if(t.targetType === 'skill') {
                         const s = skills.value.find(sk => sk.id == t.skillId);
                         if(s) { 
-                            s.xp += (gain * mult);
+                            s.xp += (gain * mult); 
                             if(t.done) { s.count = (s.count || 0) + 1; s.lastUsed = new Date().toLocaleDateString(); }
-                            attributes.value[s.bindAttr].xp += (gain * mult);
+                            attributes.value[s.bindAttr].xp += (gain * mult); 
                         }
                     } else { attributes.value[t.targetType].xp += (gain * mult); }
                 };
@@ -388,30 +445,61 @@
                         const ctx = canvas.getContext('2d');
                         if(wealthChart) wealthChart.destroy();
 
-                        let filteredData = (chartTimeRange.value === 'monthly') 
-                            ? wealthHistory.value.filter(item => item.date.split('/')[2] === "1").slice(-6)
-                            : wealthHistory.value.slice(-7);
+                        let filteredData = [];
+                        
+                        if (chartTimeRange.value === 'monthly') {
+                            // --- 逻辑 A：只提取每月 1 号的数据 ---
+                            // 遍历历史，只保留日期结尾是 "/1" 的记录
+                            filteredData = wealthHistory.value.filter(item => {
+                                const parts = item.date.split('/');
+                                return parts[2] === "1"; 
+                            }).slice(-6); // 只取最近 6 个月
+                        } else {
+                            // --- 逻辑 B：默认取最近 7 次记录 ---
+                            filteredData = wealthHistory.value.slice(-7);
+                        }
 
+                        // 坐标轴标签：月视图显示“X月”，周视图显示“X日”
                         const labels = filteredData.map(l => {
                             const p = l.date.split('/');
                             return chartTimeRange.value === 'monthly' ? `${p[1]}月` : `${p[2]}日`;
                         });
 
-                        let chartData = (type === 'total') ? filteredData.map(l => l.total) : filteredData.map(l => l.parts[type] || 0);
+                        // --- 关键修改：匹配你的输入框字段 ---
+                        let chartData = [];
+                        if (type === 'total') {
+                            chartData = filteredData.map(l => l.total);
+                        } else if (type === 'alipay') {
+                            // 对应你 wealthParts 里的“支付宝理财”
+                            chartData = filteredData.map(l => l.parts['支付宝理财'] || 0);
+                        } else if (type === 'others') {
+                            // 对应你 wealthParts 里的“银行存款”
+                            chartData = filteredData.map(l => l.parts['银行存款'] || 0);
+                        }
 
                         wealthChart = new Chart(ctx, {
                             type: 'line',
                             data: {
                                 labels: labels,
-                                datasets: [{
-                                    label: '金额',
-                                    data: chartData,
-                                    borderColor: (type === 'ali') ? '#3b82f6' : (type === 'bank' ? '#10b981' : '#d946ef'),
-                                    backgroundColor: 'rgba(217, 70, 239, 0.05)',
-                                    fill: true, tension: 0.4, pointRadius: 4
+                                datasets: [{ 
+                                    label: '金额', 
+                                    data: chartData, 
+                                    borderColor: type === 'alipay' ? '#3b82f6' : (type === 'others' ? '#10b981' : '#d946ef'), 
+                                    backgroundColor: 'rgba(217, 70, 239, 0.05)', 
+                                    fill: true, 
+                                    tension: 0.4, 
+                                    pointRadius: 4 
                                 }]
                             },
-                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { font: { size: 8 } } } } }
+                            options: { 
+                                responsive: true, 
+                                maintainAspectRatio: false, 
+                                plugins: { legend: { display: false } }, 
+                                scales: { 
+                                    y: { display: false }, 
+                                    x: { grid: { display: false }, ticks: { font: { size: 8 } } } 
+                                } 
+                            }
                         });
                     });
                 };
@@ -438,51 +526,75 @@
                     if(!history.value[k]) history.value[k] = { signed: true, note: '打卡', type: '签到' };
                     else history.value[k].signed = !history.value[k].signed;
                 };
-
                 const saveNote = () => {
                     if(!tempNote.value.trim()) return alert("写点什么吧~");
-                    history.value[`${new Date().toLocaleString()}`] = { note: tempNote.value, type: '复盘', signed: true, status: dailyStatus.value };
+                    const key = `${new Date().toLocaleString()}`;
+                    // 保存时加入了 status 状态
+                    history.value[key] = { 
+                        note: tempNote.value, 
+                        type: '复盘', 
+                        signed: true, 
+                        status: dailyStatus.value 
+                    };
+                    // 同时更新看板的大气层状态
                     user.value.status = dailyStatus.value;
-                    tempNote.value = "";
+                    tempNote.value = ""; 
                     alert("已记入历史书！");
                 };
-
-                const deleteHistory = (key) => { if(confirm("确定要抹除这段记忆吗？")) delete history.value[key]; };
+                const deleteHistory = (key) => {
+                    if(confirm("确定要抹除这段记忆吗？")) {
+                        delete history.value[key];
+                    }
+                };
 
                 const filteredHistory = computed(() => {
                     const result = {};
+                    // 排除掉只有“签到”类型的记录，并进行关键词过滤
                     Object.keys(history.value)
-                        .filter(key => history.value[key].type !== '签到' && (history.value[key].note.includes(searchQuery.value) || key.includes(searchQuery.value)))
+                        .filter(key => {
+                            const item = history.value[key];
+                            const isNotSignOnly = item.type !== '签到';
+                            const matchesSearch = item.note.includes(searchQuery.value) || key.includes(searchQuery.value);
+                            return isNotSignOnly && matchesSearch;
+                        })
                         .sort((a, b) => b.localeCompare(a))
                         .forEach(key => result[key] = history.value[key]);
                     return result;
                 });
-
                 const addSkill = () => { const n = prompt("新技能名称:"); if(n) skills.value.push({ id: Date.now(), name: n, xp: 0, count: 0, bindAttr: 'int', icon: '💎', lastUsed: '' }); };
+// 记忆导出功能
+const exportData = () => {
+    const data = localStorage.getItem('LifeOS_V15_Master');
+    if(!data) return alert("当前还没有记忆可以导出哦！");
+    // 弹出一个窗口，方便你直接长按全选复制
+    const textArea = document.createElement("textarea");
+    textArea.value = data;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        alert("记忆已自动复制到剪贴板！请去微信或备忘录粘贴保存。");
+    } catch (err) {
+        prompt("请全选复制下方的代码并保存：", data);
+    }
+    document.body.removeChild(textArea);
+};
 
-                const exportData = async () => {
-                    const data = localStorage.getItem('LifeOS_V15_Master');
-                    if(!data) return alert("当前还没有记忆可以导出哦！");
-                    try {
-                        await navigator.clipboard.writeText(data);
-                        alert("记忆已自动复制到剪贴板！请去粘贴保存。");
-                    } catch (err) {
-                        prompt("请全选复制下方的代码：", data);
-                    }
-                };
-
-                const importData = () => {
-                    const json = prompt("请在这里粘贴你之前保存的记忆代码：");
-                    if (json && json.trim() !== "") {
-                        try {
-                            JSON.parse(json);
-                            localStorage.setItem('LifeOS_V15_Master', json);
-                            alert("同步成功！即将重启人生...");
-                            location.reload();
-                        } catch (e) { alert("注入失败：代码格式不对。"); }
-                    }
-                };
-
+// 记忆注入功能
+const importData = () => {
+    const json = prompt("请在这里粘贴你之前保存的记忆代码：");
+    if (json && json.trim() !== "") {
+        try {
+            JSON.parse(json); // 检查格式对不对
+            localStorage.setItem('LifeOS_V15_Master', json);
+            alert("同步成功！即将重启人生...");
+            location.reload(); 
+        } catch (e) {
+            alert("注入失败：代码格式不对，请确保复制了完整的记忆代码。");
+        }
+    }
+};
+                // 数据持久化
                 onMounted(() => {
                     const s = localStorage.getItem('LifeOS_V15_Master');
                     if(s) {
@@ -507,11 +619,11 @@
 
                 return {
                     chartTimeRange, renderChart, activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
-                    displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, weeklySignStatus,
+                    displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, sortedHistory, weeklySignStatus,
                     statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低能量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
-                    addTask, toggleTask, confirmWealth, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
-                    searchQuery, isHistoryOpen, dailyStatus, filteredHistory, deleteHistory
-                };
+                    addTask, toggleTask, confirmWealth, renderChart, chartTimeRange, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
+    searchQuery, isHistoryOpen, dailyStatus, filteredHistory, deleteHistory
+};
             }
         }).mount('#app')
     </script>
