@@ -134,7 +134,15 @@
             </div>
             <div v-if="wishTab==='active'" class="grid grid-cols-2 gap-3">
                 <div v-for="w in activeWishes" :key="w.id" @click="editWish(w)" class="card p-4 aspect-square flex flex-col justify-between border-none shadow-sm" :class="w.colorClass">
-                    <div class="flex justify-between"><span class="text-xs font-black">{{ w.title }}</span><input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500"></div>
+                    <div class="flex justify-between"><span class="text-xs font-black">{{ w.title }}</span>
+                        <div class="mt-2 space-y-1">
+    <div v-if="w.condition" class="text-[10px] font-bold text-fuchsia-500 bg-fuchsia-50 px-2 py-0.5 rounded-lg inline-block">
+        🎯 {{ w.condition }}
+    </div>
+    <div v-if="w.note" class="text-[9px] text-slate-400 italic leading-tight line-clamp-2">
+        {{ w.note }}
+    </div>
+</div><input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500"></div>
                     <div class="text-[9px] font-mono text-slate-400">EST. ￥{{ w.price }}</div>
                 </div>
                 <button @click="addWish" class="card aspect-square border-2 border-dashed border-fuchsia-100 text-fuchsia-200 text-3xl flex items-center justify-center">+</button>
