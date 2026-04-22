@@ -3,43 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LifeOS Pro V15 | Final Edition</title>
-    <script src="https://cdn.staticfile.org/vue/3.3.4/vue.global.prod.js"></script>
+    <title>LifeOS Pro V15 | Stable Edition</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         [v-cloak] { display: none; }
-        body { background-color: #fdf2f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding-bottom: 100px; color: #1e293b; }
-        .card { background: white; border-radius: 24px; border: 1px solid #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
+        body { background-color: #fdf2f8; font-family: sans-serif; padding-bottom: 100px; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+        .card { background: white; border-radius: 24px; border: 1px solid #f1f5f9; }
         .nav-active { color: #d946ef; font-weight: 900; }
         .progress-mini { height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
-        .progress-fill { height: 100%; transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .progress-fill { height: 100%; transition: width 0.8s ease; }
         .bg-dreamy { background: linear-gradient(135deg, #fdf2f8 0%, #f5f3ff 100%); min-height: 100vh; }
         .color-pink { background: #fdf2f8; } .color-green { background: #f0fdf4; }
         .color-blue { background: #eff6ff; } .color-purple { background: #f5f3ff; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="bg-dreamy">
     <div id="app" v-cloak class="max-w-md mx-auto px-4 pt-6">
 
-        <section v-show="activeTab === 'home'" class="space-y-4">
-            <div class="flex items-center justify-between px-1">
-                <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-2xl shadow-fuchsia-100">🦄</div>
-                    <div>
-                        <h1 class="text-[10px] font-black text-fuchsia-400 uppercase tracking-widest">Aura Level</h1>
-                        <div class="flex items-center space-x-1">
-                            <div class="w-2 h-2 rounded-full animate-pulse" :class="statusColor"></div>
-                            <span class="text-xs font-bold text-slate-600">{{ user.status }}</span>
-                        </div>
+        <header class="flex items-center justify-between px-1 mb-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-2xl">🦄</div>
+                <div>
+                    <h1 class="text-[10px] font-black text-fuchsia-400 uppercase tracking-widest">Aura Level</h1>
+                    <div class="flex items-center space-x-1">
+                        <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+                        <span class="text-xs font-bold text-slate-600">{{ user.status || '正常' }}</span>
                     </div>
                 </div>
-                <div class="flex space-x-2">
-                    <button @click="exportData" class="bg-white/80 p-2 rounded-xl text-[10px] font-black text-slate-500 shadow-sm uppercase tracking-widest">📤 导出</button>
-                    <button @click="importData" class="bg-white/80 p-2 rounded-xl text-[10px] font-black text-fuchsia-500 shadow-sm uppercase tracking-widest">📥 导入</button>
-                </div>
             </div>
+            <div class="flex space-x-2">
+                <button @click="exportData" class="bg-white/80 px-3 py-2 rounded-xl text-[10px] font-bold text-slate-500 shadow-sm">导出</button>
+                <button @click="importData" class="bg-white/80 px-3 py-2 rounded-xl text-[10px] font-bold text-fuchsia-500 shadow-sm">导入</button>
+            </div>
+        </header>
 
+        <section v-show="activeTab === 'home'" class="space-y-4">
             <div class="card p-5 grid grid-cols-2 gap-4 border-none shadow-xl shadow-fuchsia-100/40">
                 <div v-for="(attr, key) in displayAttributes" :key="key" class="space-y-1">
                     <div class="flex justify-between items-end">
@@ -54,36 +53,37 @@
         <section v-show="activeTab === 'todo'" class="space-y-4">
             <h2 class="text-xl font-black italic text-slate-700">MISSIONS</h2>
             <div class="space-y-3">
-                <div v-for="(t, i) in todayTasks" :key="t.id" class="card p-4 flex items-center justify-between border-none shadow-sm">
+                <div v-for="(t, i) in todayTasks" :key="t.id" class="card p-4 flex items-center justify-between shadow-sm">
                     <div @click="toggleTask(i)" class="flex items-center space-x-3 text-sm flex-1">
-                        <div class="w-5 h-5 border-2 rounded-lg transition-colors" :class="t.done ? 'bg-fuchsia-400 border-fuchsia-400' : 'border-slate-100'"></div>
+                        <div class="w-5 h-5 border-2 rounded-lg" :class="t.done ? 'bg-fuchsia-400 border-fuchsia-400' : 'border-slate-100'"></div>
                         <span :class="{'line-through text-slate-300': t.done}">{{ t.name }}</span>
                     </div>
-                    <button @click="todayTasks.splice(i,1)" class="text-slate-200 hover:text-rose-400 transition-colors">✕</button>
+                    <button @click="todayTasks.splice(i,1)" class="text-slate-300 px-2">✕</button>
                 </div>
             </div>
-            
-            <div class="card p-5 space-y-3 border-none shadow-xl shadow-fuchsia-100/20">
-                <input v-model="newTask.name" placeholder="设定一个新目标..." class="w-full text-sm border-b border-slate-100 p-2 outline-none focus:border-fuchsia-300 transition-colors bg-transparent">
+            <div class="card p-5 space-y-3 shadow-xl">
+                <input v-model="newTask.name" placeholder="设定新任务..." class="w-full text-sm border-b p-2 outline-none bg-transparent">
                 <div class="grid grid-cols-2 gap-2">
                     <select v-model="newTask.targetType" class="text-[10px] bg-slate-50 p-2 rounded-xl">
-                        <option value="skill">关联技能</option><option value="int">智慧 INT</option><option value="str">力量 STR</option><option value="san">心情 SAN</option>
+                        <option value="skill">关联技能</option>
+                        <option value="int">智慧 INT</option>
+                        <option value="san">心情 SAN</option>
                     </select>
                     <select v-if="newTask.targetType === 'skill'" v-model="newTask.skillId" class="text-[10px] bg-slate-50 p-2 rounded-xl">
                         <option v-for="s in skills" :key="s.id" :value="s.id">{{s.name}}</option>
                     </select>
-                    <button @click="addTask" class="col-span-2 bg-slate-800 text-white py-3 rounded-2xl font-black text-xs uppercase tracking-widest">Launch</button>
                 </div>
+                <button @click="addTask" class="w-full bg-slate-800 text-white py-3 rounded-2xl font-black text-xs uppercase tracking-widest">Launch</button>
             </div>
         </section>
 
         <section v-show="activeTab === 'skill'" class="space-y-4">
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-black italic text-slate-700 uppercase">Skill Tree</h2>
-                <button @click="addSkill" class="px-3 py-1.5 bg-fuchsia-500 text-white rounded-xl text-[10px] font-bold shadow-lg">+ 添加</button>
+                <button @click="addSkill" class="px-3 py-1.5 bg-fuchsia-500 text-white rounded-xl text-[10px] font-bold">+ 添加</button>
             </div>
             <div class="space-y-3">
-                <div v-for="s in skills" :key="s.id" @click="selectedSkill = s" class="card p-4 border-none shadow-sm flex items-center space-x-4 active:scale-95 transition-transform">
+                <div v-for="s in skills" :key="s.id" @click="selectedSkill = s" class="card p-4 shadow-sm flex items-center space-x-4">
                     <div class="w-10 h-10 rounded-xl bg-fuchsia-50 flex items-center justify-center text-lg">{{ s.icon || '🧬' }}</div>
                     <div class="flex-1">
                         <div class="flex justify-between items-center mb-1">
@@ -99,8 +99,10 @@
         <section v-show="activeTab === 'wish'" class="space-y-4">
             <div class="flex justify-between items-center">
                 <h2 class="text-xl font-black italic text-slate-700">WISHES</h2>
-                <button @click="wishTab='active'" :class="wishTab==='active'?'text-fuchsia-500':'text-slate-400'" class="text-[10px] font-bold">未实现</button>
-                <button @click="wishTab='done'" :class="wishTab==='done'?'text-fuchsia-500':'text-slate-400'" class="text-[10px] font-bold">已达成</button>
+                <div class="flex space-x-4">
+                    <button @click="wishTab='active'" :class="wishTab==='active'?'text-fuchsia-500':'text-slate-400'" class="text-[10px] font-bold">未实现</button>
+                    <button @click="wishTab='done'" :class="wishTab==='done'?'text-fuchsia-500':'text-slate-400'" class="text-[10px] font-bold">已达成</button>
+                </div>
             </div>
             <div v-if="wishTab==='active'" class="grid grid-cols-2 gap-3">
                 <div v-for="w in activeWishes" :key="w.id" @click="editExistingWish(w)" class="card p-4 aspect-square flex flex-col border-none shadow-sm cursor-pointer" :class="w.colorClass">
@@ -108,75 +110,51 @@
                         <span class="text-xs font-black text-slate-800 leading-tight flex-1 mr-2">{{ w.title }}</span>
                         <input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500 shrink-0">
                     </div>
-                    <div v-if="w.note" class="p-2 bg-white/60 backdrop-blur-sm rounded-lg text-[10px] text-slate-700 line-clamp-3 leading-relaxed border border-white/30 italic">
+                    <div v-if="w.note" class="p-2 bg-white/60 backdrop-blur-sm rounded-lg text-[10px] text-slate-700 line-clamp-3 leading-tight border border-white/30 italic">
                         {{ w.note }}
                     </div>
-                    <div class="mt-auto text-[9px] font-mono font-bold text-slate-400">￥{{ w.price }}</div>
+                    <div class="mt-auto text-[9px] font-mono font-bold text-slate-500">￥{{ w.price }}</div>
                 </div>
                 <button @click="addWish" class="card aspect-square border-2 border-dashed border-fuchsia-100 text-fuchsia-200 text-3xl flex items-center justify-center">+</button>
             </div>
-            </section>
+        </section>
 
-        <div v-if="selectedSkill" class="fixed inset-0 bg-white/95 backdrop-blur-xl z-50 p-8 flex flex-col overflow-y-auto">
+        <div v-if="selectedSkill" class="fixed inset-0 bg-white/95 z-50 p-8 flex flex-col overflow-y-auto">
             <div class="flex justify-between items-center mb-8">
                 <h2 class="text-2xl font-black">{{ selectedSkill.name }}</h2>
                 <button @click="selectedSkill = null" class="text-2xl">✕</button>
             </div>
-            <div class="space-y-6">
-                <div class="grid grid-cols-2 gap-4 text-center">
-                    <div class="card p-4 bg-fuchsia-50/50">
-                        <div class="text-[10px] text-fuchsia-300 uppercase font-black">完成次数</div>
-                        <div class="text-2xl font-mono">{{ selectedSkill.count || 0 }}</div>
-                    </div>
-                    <div class="card p-4 bg-slate-50/50">
-                        <div class="text-[10px] text-slate-300 uppercase font-black">经验值</div>
-                        <div class="text-2xl font-mono">{{ selectedSkill.xp }}</div>
-                    </div>
+            <div class="space-y-4">
+                <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Growth Insights</div>
+                <div v-for="ins in (selectedSkill.insights || [])" :key="ins.id" class="card p-3 text-xs flex justify-between">
+                    <span class="text-slate-600">{{ ins.taskName }}</span>
+                    <span class="text-[9px] text-slate-300">{{ ins.date }}</span>
                 </div>
-                <div>
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">Growth Insights</h3>
-                    <div class="space-y-2">
-                        <div v-for="ins in (selectedSkill.insights || [])" :key="ins.id" class="card p-3 text-xs flex justify-between items-center">
-                            <span class="text-slate-600 font-bold">{{ ins.taskName }}</span>
-                            <span class="text-[9px] text-slate-300">{{ ins.date }}</span>
-                        </div>
-                        <div v-if="!selectedSkill.insights?.length" class="text-center py-8 text-slate-300 text-[10px]">暂无任务轨迹</div>
-                    </div>
-                </div>
-                <button @click="deleteSkill(selectedSkill.id)" class="text-rose-400 text-xs font-bold pt-10">抹除此技能</button>
+                <button @click="deleteSkill(selectedSkill.id)" class="w-full py-4 text-rose-400 text-xs font-bold">删除此技能</button>
             </div>
         </div>
 
-        <div v-if="editingWish" class="fixed inset-0 bg-white/98 backdrop-blur-md z-50 p-8 flex flex-col">
+        <div v-if="editingWish" class="fixed inset-0 bg-white/98 z-50 p-8 flex flex-col">
             <div class="flex justify-between items-center mb-8">
                 <h2 class="text-xl font-black italic">WISH EDITOR</h2>
                 <button @click="editingWish = null" class="text-2xl">✕</button>
             </div>
             <div class="space-y-6">
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase">颜色主题</label>
-                    <div class="flex gap-3 mt-2">
-                        <div v-for="c in ['pink','green','blue','purple']" :key="c" @click="editingWish.colorClass = 'color-'+c" class="w-8 h-8 rounded-full border-2" :class="['color-'+c, editingWish.colorClass === 'color-'+c ? 'border-fuchsia-500' : 'border-transparent']"></div>
-                    </div>
-                </div>
                 <input v-model="editingWish.title" placeholder="愿望名称" class="w-full text-xl font-black border-b-2 p-2 outline-none border-fuchsia-50 bg-transparent text-slate-800">
-                
-                <div>
+                <div class="space-y-2">
                     <label class="text-[10px] font-black text-slate-400 uppercase">愿望备注 / 详情</label>
-                    <textarea v-model="editingWish.note" placeholder="写下这个愿望的理由或细节..." class="w-full bg-slate-100 border-none rounded-2xl p-4 text-sm mt-1 h-32 outline-none focus:ring-2 ring-fuchsia-100 text-slate-700"></textarea>
+                    <textarea v-model="editingWish.note" placeholder="为什么想要这个？" class="w-full bg-slate-100 rounded-2xl p-4 text-sm h-32 outline-none text-slate-700"></textarea>
                 </div>
-
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-[10px] font-black text-slate-300 uppercase">预算</label><input v-model.number="editingWish.price" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-sm"></div>
-                    <div><label class="text-[10px] font-black text-slate-300 uppercase">SAN 奖励</label><input v-model.number="editingWish.sanExp" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-sm"></div>
+                    <input v-model.number="editingWish.price" type="number" placeholder="预算" class="p-4 bg-slate-50 rounded-2xl text-sm">
+                    <input v-model.number="editingWish.sanExp" type="number" placeholder="SAN奖励" class="p-4 bg-slate-50 rounded-2xl text-sm">
                 </div>
-                <button @click="saveWish" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Confirm & Save</button>
-                <button v-if="editingWish.id" @click="deleteWish(editingWish.id)" class="text-rose-400 font-bold text-xs self-center">放弃这个愿望</button>
+                <button @click="saveWish" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest">保存愿望</button>
             </div>
         </div>
 
-        <nav class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-50 flex justify-around py-4 pb-8 z-40">
-            <div v-for="t in tabs" :key="t.id" @click="activeTab = t.id" class="flex flex-col items-center space-y-1 transition-all" :class="{'nav-active scale-110': activeTab === t.id}">
+        <nav class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t flex justify-around py-4 pb-8 z-40">
+            <div v-for="t in tabs" :key="t.id" @click="activeTab = t.id" class="flex flex-col items-center space-y-1" :class="{'nav-active': activeTab === t.id}">
                 <span class="text-xl">{{ t.icon }}</span>
                 <span class="text-[8px] font-black uppercase tracking-tighter">{{ t.label }}</span>
             </div>
@@ -189,24 +167,21 @@
             setup() {
                 const activeTab = ref('home');
                 const tabs = [
-                    {id:'home',icon:'💎',label:'看板'},{id:'todo',icon:'⚡',label:'任务'},{id:'skill',icon:'🧬',label:'技能'},
-                    {id:'wish',icon:'🌈',label:'愿望'},{id:'history',icon:'📖',label:'复盘'}
+                    {id:'home',icon:'💎',label:'看板'},{id:'todo',icon:'⚡',label:'任务'},
+                    {id:'skill',icon:'🧬',label:'技能'},{id:'wish',icon:'🌈',label:'愿望'}
                 ];
 
                 const user = ref({ status: '正常' });
                 const attributes = ref({
                     int: { name: '智慧 INT', xp: 0, color: 'bg-indigo-400' },
-                    str: { name: '力量 STR', xp: 0, color: 'bg-rose-400' },
                     san: { name: '心情 SAN', xp: 0, color: 'bg-amber-400' }
                 });
 
-                // --- 技能与任务 ---
-                const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, icon: '🧠', insights: [] }]);
+                const skills = ref([{ id: 1, name: '阅读', xp: 0, count: 0, icon: '📖', insights: [] }]);
                 const selectedSkill = ref(null);
                 const todayTasks = ref([]);
                 const newTask = ref({ name: '', targetType: 'skill', skillId: 1 });
 
-                // --- 愿望 ---
                 const wishes = ref([]);
                 const wishTab = ref('active');
                 const editingWish = ref(null);
@@ -221,9 +196,7 @@
                     return res;
                 });
 
-                // --- 方法 ---
                 const addTask = () => { if(newTask.value.name) { todayTasks.value.push({ ...newTask.value, id: Date.now(), done: false }); newTask.value.name = ""; } };
-                
                 const toggleTask = (i) => {
                     const t = todayTasks.value[i];
                     t.done = !t.done;
@@ -256,29 +229,30 @@
                     }
                     editingWish.value = null;
                 };
-
                 const toggleWish = (w) => {
                     w.done = true;
-                    w.doneDate = new Date().toLocaleDateString();
                     attributes.value.san.xp += (w.sanExp || 100);
                 };
 
                 const addSkill = () => { const n = prompt("名称:"); if(n) skills.value.push({id:Date.now(), name:n, xp:0, count:0, insights:[]}); };
-                const deleteSkill = (id) => { if(confirm("确定抹除？")) { skills.value = skills.value.filter(s=>s.id!==id); selectedSkill.value = null; } };
-                const deleteWish = (id) => { wishes.value = wishes.value.filter(w=>w.id!==id); editingWish.value = null; };
+                const deleteSkill = (id) => { if(confirm("确定删除？")) { skills.value = skills.value.filter(s=>s.id!==id); selectedSkill.value = null; } };
 
-                const exportData = () => { navigator.clipboard.writeText(JSON.stringify(localStorage.getItem('LifeOS_Master'))); alert("已复制"); };
-                const importData = () => { const j = prompt("粘贴记忆:"); if(j) { localStorage.setItem('LifeOS_Master', j); location.reload(); } };
+                const exportData = () => { prompt("请复制记忆代码:", JSON.stringify(localStorage.getItem('LifeOS_Master'))); };
+                const importData = () => { const j = prompt("粘贴记忆代码:"); if(j) { localStorage.setItem('LifeOS_Master', j); location.reload(); } };
 
                 onMounted(() => {
                     const s = localStorage.getItem('LifeOS_Master');
                     if(s) {
-                        const d = JSON.parse(s);
-                        user.value = d.user || user.value;
-                        attributes.value = d.attributes || attributes.value;
-                        skills.value = d.skills || skills.value;
-                        wishes.value = d.wishes || [];
-                        todayTasks.value = d.todayTasks || [];
+                        try {
+                            const d = JSON.parse(s);
+                            if(d) {
+                                user.value = d.user || user.value;
+                                attributes.value = d.attributes || attributes.value;
+                                skills.value = d.skills || skills.value;
+                                wishes.value = d.wishes || [];
+                                todayTasks.value = d.todayTasks || [];
+                            }
+                        } catch(e) { console.error("加载失败", e); }
                     }
                 });
 
@@ -291,8 +265,7 @@
                 return {
                     activeTab, tabs, user, attributes, skills, todayTasks, wishes, 
                     selectedSkill, newTask, editingWish, wishTab, activeWishes,
-                    displayAttributes, statusColor: computed(() => 'bg-emerald-400'),
-                    addTask, toggleTask, addWish, editExistingWish, saveWish, toggleWish, addSkill, deleteSkill, deleteWish, exportData, importData
+                    displayAttributes, addTask, toggleTask, addWish, editExistingWish, saveWish, toggleWish, addSkill, deleteSkill, exportData, importData
                 };
             }
         }).mount('#app')
