@@ -135,24 +135,15 @@
             <div v-if="wishTab==='active'" class="grid grid-cols-2 gap-3">
                 <div v-for="w in activeWishes" :key="w.id" @click="editWish(w)" class="card p-4 aspect-square flex flex-col justify-between border-none shadow-sm" :class="w.colorClass">
                     <div class="flex justify-between"><span class="text-xs font-black">{{ w.title }}</span>
-                        
-                       <div class="flex justify-between">
-    <span class="text-xs font-black">{{ w.title }}</span>
-    
-    <div class="flex flex-col"> <input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500">
-    </div>
-</div>
-
-<div class="mt-1 space-y-1">
-    <div v-if="w.condition" class="text-[9px] font-bold text-fuchsia-600 bg-white/60 px-1 rounded inline-block">
+                        <div class="mt-2 space-y-1">
+    <div v-if="w.condition" class="text-[10px] font-bold text-fuchsia-500 bg-fuchsia-50 px-2 py-0.5 rounded-lg inline-block">
         🎯 {{ w.condition }}
     </div>
-    <div v-if="w.note" class="text-[9px] text-slate-500 italic leading-tight">
+    <div v-if="w.note" class="text-[9px] text-slate-400 italic leading-tight line-clamp-2">
         {{ w.note }}
     </div>
-</div>
-
-<div class="text-[9px] font-mono text-slate-400">EST. ￥{{ w.price }}</div>
+</div><input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500"></div>
+                    <div class="text-[9px] font-mono text-slate-400">EST. ￥{{ w.price }}</div>
                 </div>
                 <button @click="addWish" class="card aspect-square border-2 border-dashed border-fuchsia-100 text-fuchsia-200 text-3xl flex items-center justify-center">+</button>
             </div>
@@ -450,12 +441,6 @@
                             attributes.value[s.bindAttr].xp += (gain * mult); 
                         }
                     } else { attributes.value[t.targetType].xp += (gain * mult); }
-                    attributes.value.int.xp += 50;  // 额外奖励智慧
-    attributes.value.san.xp += 80;  // 额外奖励心情
-} else {
-    attributes.value.int.xp -= 50;  // 取消勾选则减去
-    attributes.value.san.xp -= 80;
-}
                 };
 
                 const confirmWealth = () => {
