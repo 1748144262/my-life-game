@@ -134,7 +134,16 @@
             </div>
             <div v-if="wishTab==='active'" class="grid grid-cols-2 gap-3">
                 <div v-for="w in activeWishes" :key="w.id" @click="editWish(w)" class="card p-4 aspect-square flex flex-col justify-between border-none shadow-sm" :class="w.colorClass">
-                    <div class="flex justify-between"><span class="text-xs font-black">{{ w.title }}</span><input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500"></div>
+                    <div class="flex justify-between"><span class="text-xs font-black">{{ w.title }}</span>
+                        <div class="mt-2 space-y-1">
+    <div v-if="w.condition" class="text-[10px] font-bold text-fuchsia-500 bg-fuchsia-50 px-2 py-0.5 rounded-lg inline-block">
+        🎯 {{ w.condition }}
+    </div>
+    <div v-if="w.note" class="text-[9px] text-slate-400 italic leading-tight line-clamp-2">
+        {{ w.note }}
+    </div>
+</div>
+                        <input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500"></div>
                     <div class="text-[9px] font-mono text-slate-400">EST. ￥{{ w.price }}</div>
                 </div>
                 <button @click="addWish" class="card aspect-square border-2 border-dashed border-fuchsia-100 text-fuchsia-200 text-3xl flex items-center justify-center">+</button>
@@ -315,6 +324,16 @@
         <textarea v-model="editingWish.note" placeholder="写下细节..." class="w-full p-3 bg-slate-50 rounded-xl text-xs h-20 outline-none"></textarea>
     </div>
 </div>
+                <div class="mt-4 space-y-3">
+    <div>
+        <label class="text-[10px] font-bold text-slate-400 uppercase">达成条件</label>
+        <input v-model="editingWish.condition" placeholder="例如：存够5000元" class="w-full p-3 bg-slate-50 rounded-xl text-xs outline-none">
+    </div>
+    <div>
+        <label class="text-[10px] font-bold text-slate-400 uppercase">备注</label>
+        <textarea v-model="editingWish.note" placeholder="写下细节..." class="w-full p-3 bg-slate-50 rounded-xl text-xs h-20 outline-none"></textarea>
+    </div>
+</div>
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="text-[9px] font-black text-slate-300 uppercase">目标预算</label><input v-model.number="editingWish.price" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
                     <div><label class="text-[9px] font-black text-slate-300 uppercase">SAN 奖励</label><input v-model.number="editingWish.sanExp" type="number" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono"></div>
@@ -359,7 +378,6 @@
 
                 // 技能逻辑
                 const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int', icon: '🧠', lastUsed: '' }]);
-                const selectedSkill = ref(null);
                 const showSkillChartModal = ref(false);
 
                 // 任务逻辑
