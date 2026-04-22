@@ -450,6 +450,12 @@
                             attributes.value[s.bindAttr].xp += (gain * mult); 
                         }
                     } else { attributes.value[t.targetType].xp += (gain * mult); }
+                    attributes.value.int.xp += 50;  // 额外奖励智慧
+    attributes.value.san.xp += 80;  // 额外奖励心情
+} else {
+    attributes.value.int.xp -= 50;  // 取消勾选则减去
+    attributes.value.san.xp -= 80;
+}
                 };
 
                 const confirmWealth = () => {
