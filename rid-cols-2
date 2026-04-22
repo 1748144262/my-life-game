@@ -132,11 +132,7 @@
             <div v-if="wishTab==='active'" class="grid grid-cols-2 gap-3">
                 <div v-for="w in activeWishes" :key="w.id" @click="editWish(w)" class="card p-4 aspect-square flex flex-col justify-between border-none shadow-sm" :class="w.colorClass">
                     <div class="flex justify-between"><span class="text-xs font-black">{{ w.title }}</span><input type="checkbox" @click.stop="toggleWish(w)" class="w-4 h-4 accent-fuchsia-500"></div>
-                    <div class="space-y-1 mt-2">
-    <div class="text-[8px] bg-white/50 p-1 rounded">💰 预算: ￥{{ w.price }}</div>
-    <div class="text-[8px] bg-white/50 p-1 rounded">🎯 条件: {{ w.condition || '未设' }}</div>
-    <div v-if="w.note" class="text-[8px] opacity-60 italic">📝 {{ w.note }}</div>
-</div>
+                    <div class="text-[9px] font-mono text-slate-400">EST. ￥{{ w.price }}</div>
                 </div>
                 <button @click="addWish" class="card aspect-square border-2 border-dashed border-fuchsia-100 text-fuchsia-200 text-3xl flex items-center justify-center">+</button>
             </div>
@@ -305,7 +301,6 @@
                 let wealthChart = null;
 
                 const skills = ref([{ id: 1, name: '深度学习', xp: 0, count: 0, bindAttr: 'int', icon: '🧠', lastUsed: '' }]);
-                const editingSkill = ref(null);
                 const selectedSkill = ref(null);
                 const todayTasks = ref([]);
                 const newTask = ref({ name: '', targetType: 'skill', skillId: 1, type: '主线' });
@@ -352,18 +347,6 @@
                     }
                     return statuses;
                 });
-                const editSkill = (s) => { editingSkill.value = { ...s }; };
-const saveSkill = () => {
-    const idx = skills.value.findIndex(s => s.id === editingSkill.value.id);
-    if(idx !== -1) skills.value[idx] = { ...editingSkill.value };
-    editingSkill.value = null;
-};
-const deleteSkill = (id) => {
-    if(confirm("确定删除该技能？相关经验不会倒扣但卡片会消失。")) {
-        skills.value = skills.value.filter(s => s.id !== id);
-        editingSkill.value = null;
-    }
-};
 
                 const addTask = () => { 
                     if(newTask.value.name) { 
@@ -381,14 +364,6 @@ const deleteSkill = (id) => {
                             s.xp += (gain * mult);
                             if(t.done) { s.count = (s.count || 0) + 1; s.lastUsed = new Date().toLocaleDateString(); }
                             attributes.value[s.bindAttr].xp += (gain * mult);
-                            // 新增：完成技能任务时的额外属性奖励
-if (t.done) {
-    attributes.value.int.xp += 50; // 智慧 +50
-    attributes.value.san.xp += 80; // 心情 +80
-} else {
-    attributes.value.int.xp -= 50; // 取消勾选时扣回
-    attributes.value.san.xp -= 80;
-}
                         }
                     } else { attributes.value[t.targetType].xp += (gain * mult); }
                 };
@@ -441,7 +416,7 @@ if (t.done) {
                     });
                 };
 
-                const addWish = () => { editingWish.value = { title: '', price: 0, sanExp: 100, colorClass: 'color-purple', done: false, note: '', condition: '' }; };
+                const addWish = () => { editingWish.value = { title: '', price: 0, sanExp: 100, colorClass: 'color-purple', done: false }; };
                 const editWish = (w) => { editingWish.value = { ...w }; };
                 const saveWish = () => {
                     if(!editingWish.value.id) { editingWish.value.id = Date.now(); wishes.value.push(editingWish.value); }
@@ -531,7 +506,7 @@ if (t.done) {
                 watch(showWealthChart, (val) => { if(val) renderChart('total'); });
 
                 return {
-                    editingSkill, chartTimeRange, editSkill, saveSkill, deleteSkill, renderChart, activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
+                    chartTimeRange, renderChart, activeTab, tabs, user, attributes, skills, todayTasks, history, wealthParts, wealthLabel, wealthHistory, showWealthChart, wishes, selectedSkill, newTask, tempNote, editingWish, wishTab, viewYear, viewMonth, daysInViewMonth, firstDayOffset,
                     displayAttributes, tempTotalWealth, tasksDoneToday, activeWishes, doneWishes, weeklySignStatus,
                     statusColor: computed(() => ({ '积极': 'bg-emerald-400', '正常': 'bg-amber-400', '低能量': 'bg-rose-400' }[user.value.status] || 'bg-slate-200')),
                     addTask, toggleTask, confirmWealth, addWish, editWish, saveWish, toggleWish, deleteWish, signDay, saveNote, addSkill, exportData, importData,
